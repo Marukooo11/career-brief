@@ -1,0 +1,67 @@
+name: Daily Last30Days WeCom Brief
+
+on:
+  workflow_dispatch:
+    inputs:
+      topics:
+        description: "Optional topics for this run, separated by commas or new lines. Empty means config/topics.yml."
+        required: false
+        type: string
+  schedule:
+    # GitHub schedules run in UTC. This is 08:30 Asia/Shanghai.
+    - cron: "30 0 * * *"
+
+jobs:
+  daily-brief:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    env:
+      WECOM_BOT_WEBHOOK: ${{ secrets.WECOM_BOT_WEBHOOK }}
+
+      # Optional last30days keys. Leave unset until you decide to unlock sources.
+      GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      BRAVE_API_KEY: ${{ secrets.BRAVE_API_KEY }}
+      SERPER_API_KEY: ${{ secrets.SERPER_API_KEY }}
+      EXA_API_KEY: ${{ secrets.EXA_API_KEY }}
+      SCRAPECREATORS_API_KEY: ${{ secrets.SCRAPECREATORS_API_KEY }}
+      XAI_API_KEY: ${{ secrets.XAI_API_KEY }}
+      BSKY_HANDLE: ${{ secrets.BSKY_HANDLE }}
+      BSKY_APP_PASSWORD: ${{ secrets.BSKY_APP_PASSWORD }}
+
+      # Optional behavior knobs.
+      LAST30DAYS_LOOKBACK_DAYS: "30"
+      MAX_ITEMS_PER_TOPIC: "5"
+      TOPICS_TEXT: ${{ inputs.topics }}
+
+    steps:
+      - name: Check out daily brief repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install optional CLIs
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install yt-dlp
+
+      - name: Clone last30days skill
+        run: |
+          git clone --depth 1 https://github.com/mvanhorn/last30days-skill.git .last30days-skill
+
+      - name: Run daily brief and send to WeCom
+        run: |
+          python scripts/daily_last30days.py --skill-dir .last30days-skill
+
+      - name: Upload brief artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: last30days-brief
+          path: artifacts/
+          if-no-files-found: ignore
