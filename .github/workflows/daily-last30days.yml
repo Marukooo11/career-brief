@@ -1,4 +1,4 @@
-name: Daily Last30Days WeCom Brief
+name: AI Job Intel Email Brief
 
 on:
   workflow_dispatch:
@@ -64,7 +64,7 @@ jobs:
         run: |
           git clone --depth 1 https://github.com/mvanhorn/last30days-skill.git .last30days-skill
 
-      - name: Run daily brief and send to WeCom
+      - name: Run daily brief and send email
         run: |
           python scripts/daily_last30days.py --skill-dir .last30days-skill
 
