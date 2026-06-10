@@ -109,13 +109,13 @@ configuration than the group robot version.
 
 ## Schedule
 
-The workflow currently runs at:
+The workflow currently runs every 2 days at 12:00 Asia/Shanghai:
 
 ```yaml
-cron: "30 0 * * *"
+cron: "0 4 */2 * *"
 ```
 
-GitHub cron is UTC, so this is 08:30 Asia/Shanghai.
+GitHub cron is UTC, so 12:00 Asia/Shanghai is 04:00 UTC.
 
 ## Source Coverage
 

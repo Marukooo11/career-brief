@@ -8,8 +8,8 @@ on:
         required: false
         type: string
   schedule:
-    # GitHub schedules run in UTC. This is 08:30 Asia/Shanghai.
-    - cron: "30 0 * * *"
+    # GitHub schedules run in UTC. This is 12:00 Asia/Shanghai every 2 days.
+    - cron: "0 4 */2 * *"
 
 jobs:
   daily-brief:
