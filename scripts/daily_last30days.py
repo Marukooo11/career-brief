@@ -249,12 +249,12 @@ def build_markdown(results: list[dict[str, Any]]) -> str:
                 if part
             )
             url = item.get("url")
-            prefix = f"- [{title}]({url})" if url else f"- {title}"
+            prefix = f"- 原始标题：[{title}]({url})" if url else f"- 原始标题：{title}"
             if meta:
-                prefix += f" - {meta}"
+                prefix += f" | 来源：{meta}"
             lines.append(prefix)
             if item.get("text") and item.get("text") != title:
-                lines.append(f"  {item['text']}")
+                lines.append(f"  摘要：{item['text']}")
         lines.append("")
     return trim_wecom_markdown("\n".join(lines))
 

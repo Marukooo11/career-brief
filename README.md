@@ -121,6 +121,11 @@ GitHub cron is UTC, so 12:00 Asia/Shanghai is 04:00 UTC.
 
 The skill decides where to search. Your keys decide which sources are available.
 
+For Chinese job-search intelligence, add at least one search API key and one
+model API key. Without them, the workflow can fall back to basic public sources
+such as Hacker News, so results may be English-heavy and less relevant to China
+job-market topics.
+
 - No extra keys: Reddit, Hacker News, Polymarket, and some GitHub/web behavior
   can work in degraded/basic mode.
 - `yt-dlp`: YouTube transcripts become more available.

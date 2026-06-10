@@ -3,7 +3,7 @@
 # Start small. Each topic launches a separate last30days run, so 3-6 topics is
 # a comfortable first version for GitHub Actions free minutes.
 topics:
-  - name: "AI + Community Product Manager"
+  - name: "AI + 社区产品经理"
     query: "AI community product manager OR AI 社区 产品经理"
-  - name: "AI + Cross-border Ecommerce Product Manager"
+  - name: "AI + 出海电商产品经理"
     query: "AI cross-border ecommerce product manager OR AI 出海电商 产品经理"
