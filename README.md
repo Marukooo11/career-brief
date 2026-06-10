@@ -1,17 +1,18 @@
-# Last30Days WeCom Daily Brief
+# Last30Days Daily Brief
 
 This is a minimal cloud setup for running `mvanhorn/last30days-skill` every day
-on GitHub Actions and sending the digest to an Enterprise WeChat group robot.
+on GitHub Actions and sending the digest by email.
 
-It does not need your WeChat or WeCom password. It only needs a revocable group
-robot webhook URL stored in GitHub Secrets.
+It does not need your email account password if your provider supports app
+passwords. Use an SMTP app password or token and store it in GitHub Secrets.
 
 ## What You Get
 
 - A scheduled GitHub Actions workflow
 - Manual trigger support from the GitHub UI
 - A topic list in `config/topics.yml`
-- Enterprise WeChat robot delivery
+- Email delivery over SMTP
+- Optional Enterprise WeChat robot delivery
 - Markdown and JSON artifacts saved for each run
 - Optional API-key slots for richer sources
 
@@ -19,16 +20,40 @@ robot webhook URL stored in GitHub Secrets.
 
 1. Create a new GitHub repository.
 2. Copy these files into that repository.
-3. In Enterprise WeChat, create a group such as `AI Daily Brief`.
-4. Add a group robot and copy its webhook URL.
-5. In GitHub, open `Settings -> Secrets and variables -> Actions -> New repository secret`.
-6. Add this required secret:
+3. In GitHub, open `Settings -> Secrets and variables -> Actions -> New repository secret`.
+4. Add these required email secrets:
 
 ```text
+SMTP_HOST
+SMTP_PORT
+SMTP_USERNAME
+SMTP_PASSWORD
+EMAIL_TO
+```
+
+Common examples:
+
+```text
+Gmail: SMTP_HOST=smtp.gmail.com, SMTP_PORT=587
+QQ Mail: SMTP_HOST=smtp.qq.com, SMTP_PORT=465 or 587
+Outlook: SMTP_HOST=smtp.office365.com, SMTP_PORT=587
+163 Mail: SMTP_HOST=smtp.163.com, SMTP_PORT=465 or 994
+```
+
+`SMTP_PASSWORD` should normally be an app password or SMTP authorization code,
+not your normal mailbox login password.
+
+5. Optional delivery secrets:
+
+```text
+EMAIL_FROM
+EMAIL_SUBJECT
 WECOM_BOT_WEBHOOK
 ```
 
-7. Optional but useful secrets:
+If `EMAIL_FROM` is empty, the script uses `SMTP_USERNAME`.
+
+6. Optional but useful data-source secrets:
 
 ```text
 OPENAI_API_KEY
@@ -43,14 +68,16 @@ BSKY_HANDLE
 BSKY_APP_PASSWORD
 ```
 
-8. Edit `config/topics.yml`.
-9. Open `Actions -> Daily Last30Days WeCom Brief -> Run workflow` to test it.
+7. Edit `config/topics.yml`.
+8. Open `Actions -> Daily Last30Days WeCom Brief -> Run workflow` to test it.
 
 When running manually, the workflow shows an optional `topics` input. Enter
 comma-separated or newline-separated topics there to override `config/topics.yml`
 for that one run.
 
-## Getting The WeCom Webhook
+## Optional WeCom Webhook
+
+Email is the default delivery method. WeCom is optional.
 
 In Enterprise WeChat:
 
@@ -67,6 +94,14 @@ https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=...
 ```
 
 Put that full URL into the GitHub secret named `WECOM_BOT_WEBHOOK`.
+
+Then change the workflow env var:
+
+```yaml
+DELIVERY: both
+```
+
+Use `DELIVERY: wecom` if you want WeCom only.
 
 If your WeCom admin has disabled group robots, use a self-built WeCom app
 instead. That path needs `CorpID`, `AgentID`, and `Secret`, so it is more

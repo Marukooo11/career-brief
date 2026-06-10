@@ -10,9 +10,11 @@ from __future__ import annotations
 
 import argparse
 import datetime as dt
+import email.message
 import json
 import os
 import re
+import smtplib
 import subprocess
 import sys
 import textwrap
@@ -293,6 +295,79 @@ def send_wecom(webhook: str, markdown: str, dry_run: bool) -> None:
         raise SystemExit(f"WeCom delivery failed: {body}")
 
 
+def send_email(markdown: str, dry_run: bool) -> None:
+    host = os.getenv("SMTP_HOST", "")
+    port = int(os.getenv("SMTP_PORT", "587"))
+    username = os.getenv("SMTP_USERNAME", "")
+    password = os.getenv("SMTP_PASSWORD", "")
+    sender = os.getenv("EMAIL_FROM", username)
+    recipients = split_recipients(os.getenv("EMAIL_TO", ""))
+    subject = os.getenv("EMAIL_SUBJECT", "Last30Days Daily Brief")
+
+    if dry_run:
+        print(markdown)
+        return
+    missing = [
+        name
+        for name, value in {
+            "SMTP_HOST": host,
+            "SMTP_USERNAME": username,
+            "SMTP_PASSWORD": password,
+            "EMAIL_TO": ",".join(recipients),
+        }.items()
+        if not value
+    ]
+    if missing:
+        raise SystemExit(f"Email delivery is missing secrets: {', '.join(missing)}")
+
+    message = email.message.EmailMessage()
+    message["Subject"] = subject
+    message["From"] = sender
+    message["To"] = ", ".join(recipients)
+    message.set_content(markdown)
+    message.add_alternative(markdown_to_html(markdown), subtype="html")
+
+    if port == 465:
+        with smtplib.SMTP_SSL(host, port, timeout=30) as smtp:
+            smtp.login(username, password)
+            smtp.send_message(message)
+    else:
+        with smtplib.SMTP(host, port, timeout=30) as smtp:
+            smtp.starttls()
+            smtp.login(username, password)
+            smtp.send_message(message)
+
+
+def split_recipients(value: str) -> list[str]:
+    return [part.strip() for part in re.split(r"[,;\n]+", value) if part.strip()]
+
+
+def markdown_to_html(markdown: str) -> str:
+    html_lines: list[str] = []
+    for line in markdown.splitlines():
+        escaped = html_escape(line)
+        escaped = re.sub(r"\*\*(.*?)\*\*", r"<strong>\1</strong>", escaped)
+        escaped = re.sub(r"\[([^\]]+)\]\((https?://[^)]+)\)", r'<a href="\2">\1</a>', escaped)
+        if not line:
+            html_lines.append("<br>")
+        elif line.startswith("> "):
+            html_lines.append(f"<blockquote>{escaped[5:]}</blockquote>")
+        elif line.startswith("- "):
+            html_lines.append(f"<p>{escaped}</p>")
+        else:
+            html_lines.append(f"<p>{escaped}</p>")
+    return "\n".join(html_lines)
+
+
+def html_escape(value: str) -> str:
+    return (
+        value.replace("&", "&amp;")
+        .replace("<", "&lt;")
+        .replace(">", "&gt;")
+        .replace('"', "&quot;")
+    )
+
+
 def write_artifacts(results: list[dict[str, Any]], markdown: str, artifacts_dir: Path) -> None:
     artifacts_dir.mkdir(parents=True, exist_ok=True)
     date_label = dt.datetime.now().strftime("%Y-%m-%d")
@@ -314,6 +389,11 @@ def main() -> int:
     parser.add_argument("--skill-dir", type=Path, required=True)
     parser.add_argument("--timeout", type=int, default=300)
     parser.add_argument("--dry-run", action="store_true")
+    parser.add_argument(
+        "--delivery",
+        choices=("email", "wecom", "both"),
+        default=os.getenv("DELIVERY", "email"),
+    )
     parser.add_argument("--artifacts-dir", type=Path, default=ROOT / "artifacts")
     args = parser.parse_args()
 
@@ -325,17 +405,20 @@ def main() -> int:
     markdown = build_markdown(results)
     write_artifacts(results, markdown, args.artifacts_dir)
 
-    webhook = os.getenv("WECOM_BOT_WEBHOOK", "")
-    if not webhook and not args.dry_run:
-        raise SystemExit(
-            textwrap.dedent(
-                """
-                WECOM_BOT_WEBHOOK is missing.
-                Add your Enterprise WeChat group robot webhook to GitHub Secrets.
-                """
-            ).strip()
-        )
-    send_wecom(webhook, markdown, args.dry_run)
+    if args.delivery in ("email", "both"):
+        send_email(markdown, args.dry_run)
+    if args.delivery in ("wecom", "both"):
+        webhook = os.getenv("WECOM_BOT_WEBHOOK", "")
+        if not webhook and not args.dry_run:
+            raise SystemExit(
+                textwrap.dedent(
+                    """
+                    WECOM_BOT_WEBHOOK is missing.
+                    Add your Enterprise WeChat group robot webhook to GitHub Secrets.
+                    """
+                ).strip()
+            )
+        send_wecom(webhook, markdown, args.dry_run)
     return 0
 
 
