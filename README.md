@@ -121,10 +121,25 @@ GitHub cron is UTC, so 12:00 Asia/Shanghai is 04:00 UTC.
 
 The skill decides where to search. Your keys decide which sources are available.
 
-For Chinese job-search intelligence, add at least one search API key and one
-model API key. Without them, the workflow can fall back to basic public sources
-such as Hacker News, so results may be English-heavy and less relevant to China
-job-market topics.
+For Chinese job-search intelligence, keep topic names in Chinese but write
+`query` in English or English-heavy search terms. The email output is Chinese.
+If `OPENAI_API_KEY` is configured, ad-hoc Chinese manual topics are translated
+into English search queries, and each source gets a short Chinese explanation.
+Without a model key, the workflow still sends a Chinese-formatted email, but
+English source titles and snippets remain mostly untranslated.
+
+The brief format is:
+
+```text
+主题
+搜索词
+找到多少条线索 / 来源分布
+1. 来源标题
+   这是什么：中文说明
+   来源：平台/作者
+   信号分：排序分
+   链接：原文链接
+```
 
 - No extra keys: Reddit, Hacker News, Polymarket, and some GitHub/web behavior
   can work in degraded/basic mode.

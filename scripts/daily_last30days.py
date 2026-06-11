@@ -74,7 +74,9 @@ def parse_yaml_pair(line: str) -> tuple[str, str]:
 
 
 def run_last30days(skill_dir: Path, topic: dict[str, str], timeout: int) -> dict[str, Any]:
+    display_name = topic.get("name") or topic.get("query") or "未命名主题"
     query = topic.get("query") or topic["name"]
+    query = maybe_translate_query(query)
     skill_dir = skill_dir.resolve()
     script = skill_dir / "skills" / "last30days" / "scripts" / "last30days.py"
     cmd = [
@@ -113,37 +115,142 @@ def run_last30days(skill_dir: Path, topic: dict[str, str], timeout: int) -> dict
             "raw": result.stdout[-1200:],
         }
 
-    items = extract_items(payload)
+    all_items = extract_items(payload)
+    items = enrich_items_for_brief(all_items[: int(os.getenv("MAX_ITEMS_PER_TOPIC", "5"))])
     return {
-        "name": topic.get("name", query),
+        "name": display_name,
         "query": query,
         "status": "ok",
-        "items": items[: int(os.getenv("MAX_ITEMS_PER_TOPIC", "5"))],
-        "source_counts": count_sources(items),
-        "raw_count": len(items),
+        "items": items,
+        "source_counts": count_sources(all_items),
+        "raw_count": len(all_items),
     }
+
+
+def maybe_translate_query(query: str) -> str:
+    """Convert ad-hoc Chinese topics into English search queries when possible."""
+    if not contains_cjk(query) or not os.getenv("OPENAI_API_KEY"):
+        return query
+    prompt = (
+        "把下面的中文求职/行业情报主题改写成适合英文社媒、新闻、论坛搜索的英文 query。"
+        "只输出 query 本身，不要解释。保留核心职业、行业和 AI 关键词。\n\n"
+        f"主题：{query}"
+    )
+    translated = call_openai_text(prompt, max_tokens=120)
+    return translated or query
+
+
+def contains_cjk(value: str) -> bool:
+    return bool(re.search(r"[\u3400-\u9fff]", value))
+
+
+def enrich_items_for_brief(items: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    if not os.getenv("OPENAI_API_KEY"):
+        for item in items:
+            item["brief_summary"] = fallback_item_summary(item)
+        return items
+
+    enriched: list[dict[str, Any]] = []
+    for item in items:
+        summary = summarize_item_in_chinese(item)
+        item["brief_summary"] = summary or fallback_item_summary(item)
+        enriched.append(item)
+    return enriched
+
+
+def summarize_item_in_chinese(item: dict[str, Any]) -> str:
+    title = item.get("title") or ""
+    text = item.get("text") or ""
+    source = item.get("source") or "unknown"
+    prompt = (
+        "你在帮一位中文产品经理找 AI+社区、AI+出海电商方向的工作机会和行业信号。"
+        "请把下面这条英文或中文来源压缩成一句自然中文说明，说明它是什么、为什么可能有参考价值。"
+        "不要编造链接、公司、岗位；不要超过 60 个中文字。\n\n"
+        f"来源：{source}\n标题：{title}\n摘要：{text}"
+    )
+    return call_openai_text(prompt, max_tokens=180)
+
+
+def call_openai_text(prompt: str, max_tokens: int = 200) -> str:
+    api_key = os.getenv("OPENAI_API_KEY", "")
+    if not api_key:
+        return ""
+    payload = {
+        "model": os.getenv("OPENAI_MODEL", "gpt-4o-mini"),
+        "messages": [
+            {"role": "system", "content": "你是一个谨慎的中文研究助理，只基于给定材料总结。"},
+            {"role": "user", "content": prompt},
+        ],
+        "temperature": 0.2,
+        "max_tokens": max_tokens,
+    }
+    request = urllib.request.Request(
+        "https://api.openai.com/v1/chat/completions",
+        data=json.dumps(payload, ensure_ascii=False).encode("utf-8"),
+        headers={
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json",
+        },
+        method="POST",
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=30) as response:
+            data = json.loads(response.read().decode("utf-8"))
+    except Exception:
+        return ""
+    content = (
+        data.get("choices", [{}])[0]
+        .get("message", {})
+        .get("content", "")
+        .strip()
+    )
+    return clean_text(content)
+
+
+def fallback_item_summary(item: dict[str, Any]) -> str:
+    title = item.get("title") or "这条线索"
+    text = item.get("text") or ""
+    if text and text != title:
+        return f"这是一条关于“{title}”的来源，摘要显示：{text[:120]}"
+    return f"这是一条关于“{title}”的外部来源，可作为趋势或讨论线索继续查看。"
 
 
 def extract_items(payload: Any) -> list[dict[str, Any]]:
     """Best-effort extraction from the upstream JSON schema."""
+    if isinstance(payload, dict):
+        ranked_candidates = payload.get("ranked_candidates")
+        if isinstance(ranked_candidates, list) and ranked_candidates:
+            return dedupe_and_sort(
+                [normalize_item(item) for item in ranked_candidates if isinstance(item, dict)]
+            )
+
+        items_by_source = payload.get("items_by_source")
+        if isinstance(items_by_source, dict) and items_by_source:
+            source_items: list[dict[str, Any]] = []
+            for source, items in items_by_source.items():
+                if not isinstance(items, list):
+                    continue
+                for item in items:
+                    if isinstance(item, dict):
+                        merged = dict(item)
+                        merged.setdefault("source", source)
+                        source_items.append(merged)
+            return dedupe_and_sort([normalize_item(item) for item in source_items])
+
     candidates: list[Any] = []
     if isinstance(payload, dict):
         for key in ("items", "results", "findings", "sources"):
             value = payload.get(key)
             if isinstance(value, list):
                 candidates.extend(value)
-        for value in payload.values():
-            if isinstance(value, dict):
-                for nested_key in ("items", "results", "findings"):
-                    nested = value.get(nested_key)
-                    if isinstance(nested, list):
-                        candidates.extend(nested)
-            elif isinstance(value, list):
-                candidates.extend(value)
     elif isinstance(payload, list):
         candidates = payload
 
     normalized = [normalize_item(item) for item in candidates if isinstance(item, dict)]
+    return dedupe_and_sort(normalized)
+
+
+def dedupe_and_sort(normalized: list[dict[str, Any]]) -> list[dict[str, Any]]:
     deduped: list[dict[str, Any]] = []
     seen: set[str] = set()
     for item in normalized:
@@ -157,12 +264,25 @@ def extract_items(payload: Any) -> list[dict[str, Any]]:
 
 def normalize_item(item: dict[str, Any]) -> dict[str, Any]:
     title = first_text(item, "title", "source_title", "headline", "name")
-    text = first_text(item, "text", "content", "summary", "body", "description")
+    text = first_text(
+        item,
+        "snippet",
+        "explanation",
+        "why_relevant",
+        "text",
+        "content",
+        "summary",
+        "body",
+        "description",
+    )
     url = first_text(item, "url", "source_url", "permalink", "link")
-    source = first_text(item, "source", "platform", "type") or "unknown"
-    author = first_text(item, "author", "handle", "channel", "subreddit")
+    source = first_source(item)
+    author = first_text(item, "author", "handle", "channel", "subreddit", "container")
     score = first_number(
         item,
+        "final_score",
+        "rerank_score",
+        "rrf_score",
         "engagement_score",
         "score",
         "upvotes",
@@ -178,6 +298,15 @@ def normalize_item(item: dict[str, Any]) -> dict[str, Any]:
         "author": author,
         "score": score,
     }
+
+
+def first_source(item: dict[str, Any]) -> str:
+    sources = item.get("sources")
+    if isinstance(sources, list):
+        labels = [str(source).strip() for source in sources if str(source).strip()]
+        if labels:
+            return ", ".join(labels)
+    return first_text(item, "source", "platform", "type") or "unknown"
 
 
 def first_text(item: dict[str, Any], *keys: str) -> str:
@@ -237,11 +366,12 @@ def build_markdown(results: list[dict[str, Any]]) -> str:
 
         counts = ", ".join(f"{k}: {v}" for k, v in result.get("source_counts", {}).items())
         lines.append(f"**{name}**")
-        lines.append(f"> 找到 {result.get('raw_count', 0)} 条线索" + (f" | 来源：{counts}" if counts else ""))
+        lines.append(f"> 搜索词：{result.get('query', '')}")
+        lines.append(f"> 找到 {result.get('raw_count', 0)} 条线索" + (f" | 来源分布：{counts}" if counts else ""))
         items = result.get("items", [])
         if not items:
             lines.append("- 暂时没有找到高信号线索。")
-        for item in items:
+        for index, item in enumerate(items, start=1):
             title = item.get("title") or item.get("text") or "未命名线索"
             meta = " / ".join(
                 str(part)
@@ -249,12 +379,13 @@ def build_markdown(results: list[dict[str, Any]]) -> str:
                 if part
             )
             url = item.get("url")
-            prefix = f"- 原始标题：[{title}]({url})" if url else f"- 原始标题：{title}"
+            lines.append(f"{index}. **{title}**")
+            lines.append(f"   这是什么：{item.get('brief_summary') or fallback_item_summary(item)}")
             if meta:
-                prefix += f" | 来源：{meta}"
-            lines.append(prefix)
-            if item.get("text") and item.get("text") != title:
-                lines.append(f"  摘要：{item['text']}")
+                lines.append(f"   来源：{meta}")
+            if item.get("score"):
+                lines.append(f"   信号分：{item['score']:g}")
+            lines.append(f"   链接：{url if url else '暂无链接'}")
         lines.append("")
     return trim_wecom_markdown("\n".join(lines))
 
