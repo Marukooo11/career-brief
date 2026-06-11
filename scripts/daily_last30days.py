@@ -28,6 +28,50 @@ ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_TOPICS_FILE = ROOT / "config" / "topics.yml"
 
 
+ROLE_PROFILES: dict[str, dict[str, list[str]]] = {
+    "AI + 社区产品经理": {
+        "what": [
+            "把社区、内容、用户关系和 AI 能力结合起来，提升用户留存、创作/交流效率、社区活跃和商业转化。",
+            "常见场景包括 AI 社区运营工具、创作者社区、开发者社区、知识社区、社交产品、内容平台的 AI 功能。",
+        ],
+        "responsibilities": [
+            "设计 AI 辅助发帖、内容分发、社群问答、用户匹配、内容审核、社区增长等功能。",
+            "和运营/增长团队一起定义社区指标，例如活跃、留存、贡献率、内容质量、转化率。",
+            "把用户反馈、社区讨论和数据指标转成产品需求，推动实验和迭代。",
+        ],
+        "skills": [
+            "社区/内容产品经验，理解用户分层、激励机制、冷启动和治理。",
+            "AI 产品 sense，能判断哪些社区流程适合用模型辅助，哪些不应该过度自动化。",
+            "数据分析、增长实验、用户访谈、prompt/工作流设计、跨团队推进能力。",
+        ],
+        "signals": [
+            "搜索关键词：community-led growth、creator community、AI social product、developer community、UGC moderation。",
+            "作品集可以做：AI 社区助手、社区内容质检/推荐方案、创作者成长路径、用户反馈闭环分析。",
+        ],
+    },
+    "AI + 出海电商产品经理": {
+        "what": [
+            "把 AI 能力用于跨境电商链路，帮助卖家、平台或品牌提升选品、上架、营销、客服、转化和履约效率。",
+            "常见场景包括 Shopify/DTC、Amazon/TikTok Shop 卖家工具、跨境 SaaS、AI shopping assistant、广告/素材自动化。",
+        ],
+        "responsibilities": [
+            "设计面向海外卖家或消费者的 AI 工具，例如商品文案、多语言本地化、广告素材、客服、选品分析。",
+            "理解跨境电商业务链路：选品、供应链、刊登、营销投放、支付、物流、售后、合规。",
+            "和运营、销售、算法/工程团队一起做转化率、GMV、留存、付费率等指标优化。",
+        ],
+        "skills": [
+            "电商/交易/商家工具产品经验，理解 B 端卖家需求和 C 端购物体验。",
+            "英文资料检索和海外市场理解能力，能看懂 Shopify、Amazon、TikTok Shop、DTC 工具生态。",
+            "AI 落地能力：多语言生成、商品数据结构化、营销自动化、客服机器人、数据看板。",
+        ],
+        "signals": [
+            "搜索关键词：global ecommerce、cross-border ecommerce、AI shopping assistant、DTC、Shopify app、TikTok Shop seller tools。",
+            "作品集可以做：AI 商品上架助手、跨境卖家工作台、海外市场选品分析、AI 广告素材生成流程。",
+        ],
+    },
+}
+
+
 def load_topics(path: Path) -> list[dict[str, str]]:
     """Load a tiny topics.yml without requiring PyYAML."""
     text = path.read_text(encoding="utf-8")
@@ -122,6 +166,7 @@ def run_last30days(skill_dir: Path, topic: dict[str, str], timeout: int) -> dict
         "query": query,
         "status": "ok",
         "items": items,
+        "role_brief": build_role_brief(display_name, query, items),
         "source_counts": count_sources(all_items),
         "raw_count": len(all_items),
     }
@@ -213,6 +258,61 @@ def fallback_item_summary(item: dict[str, Any]) -> str:
     if text and text != title:
         return f"这是一条关于“{title}”的来源，摘要显示：{text[:120]}"
     return f"这是一条关于“{title}”的外部来源，可作为趋势或讨论线索继续查看。"
+
+
+def build_role_brief(topic_name: str, query: str, items: list[dict[str, Any]]) -> dict[str, list[str]]:
+    if os.getenv("OPENAI_API_KEY"):
+        model_brief = synthesize_role_brief(topic_name, query, items)
+        if model_brief:
+            return model_brief
+    return ROLE_PROFILES.get(topic_name, fallback_role_profile(topic_name, query))
+
+
+def synthesize_role_brief(
+    topic_name: str, query: str, items: list[dict[str, Any]]
+) -> dict[str, list[str]]:
+    evidence = "\n".join(
+        f"- 标题：{item.get('title', '')}\n  摘要：{item.get('text', '')}\n  来源：{item.get('source', '')}\n  链接：{item.get('url', '')}"
+        for item in items[:8]
+    )
+    prompt = (
+        "你在帮一位中文产品经理做求职方向研究。"
+        "请基于给定岗位方向和来源，输出严格 JSON，不要 markdown。"
+        "JSON 字段必须是 what、responsibilities、skills、signals，每个字段是 2-4 条中文短句。"
+        "重点回答：这个岗位做什么、日常职责、需要的能力、求职时该关注什么关键词/公司/作品集方向。"
+        "如果来源不足，可以结合常识，但要保持谨慎，不要编造具体招聘信息。\n\n"
+        f"岗位方向：{topic_name}\n搜索词：{query}\n来源：\n{evidence}"
+    )
+    content = call_openai_text(prompt, max_tokens=900)
+    if not content:
+        return {}
+    try:
+        parsed = json.loads(strip_json_fence(content))
+    except json.JSONDecodeError:
+        return {}
+    brief: dict[str, list[str]] = {}
+    for key in ("what", "responsibilities", "skills", "signals"):
+        values = parsed.get(key)
+        if isinstance(values, list):
+            brief[key] = [clean_text(str(value)) for value in values if clean_text(str(value))][:4]
+    return brief if brief else {}
+
+
+def strip_json_fence(value: str) -> str:
+    value = value.strip()
+    if value.startswith("```"):
+        value = re.sub(r"^```(?:json)?\s*", "", value)
+        value = re.sub(r"\s*```$", "", value)
+    return value.strip()
+
+
+def fallback_role_profile(topic_name: str, query: str) -> dict[str, list[str]]:
+    return {
+        "what": [f"这是围绕“{topic_name}”的求职研究方向，当前搜索词是：{query}。"],
+        "responsibilities": ["重点关注岗位描述里的业务场景、核心指标、用户对象和 AI 功能落地点。"],
+        "skills": ["重点提炼产品能力、行业理解、数据分析、AI 工作流和跨团队协作要求。"],
+        "signals": ["建议补充更具体的行业、公司、平台或国家市场关键词，以提升搜索相关性。"],
+    }
 
 
 def extract_items(payload: Any) -> list[dict[str, Any]]:
@@ -347,7 +447,7 @@ def build_markdown(results: list[dict[str, Any]]) -> str:
     now = dt.datetime.now(dt.timezone.utc).astimezone()
     date_label = now.strftime("%Y-%m-%d")
     lines = [
-        f"**AI 求职情报日报 - {date_label}**",
+        f"**AI 产品经理求职方向研究 - {date_label}**",
         "",
         f"> 主题数：{len(results)} | 由 GitHub Actions 自动生成",
         "",
@@ -368,6 +468,12 @@ def build_markdown(results: list[dict[str, Any]]) -> str:
         lines.append(f"**{name}**")
         lines.append(f"> 搜索词：{result.get('query', '')}")
         lines.append(f"> 找到 {result.get('raw_count', 0)} 条线索" + (f" | 来源分布：{counts}" if counts else ""))
+        role_brief = result.get("role_brief") or {}
+        append_brief_section(lines, "这个岗位大概做什么", role_brief.get("what", []))
+        append_brief_section(lines, "常见工作内容", role_brief.get("responsibilities", []))
+        append_brief_section(lines, "需要补的能力", role_brief.get("skills", []))
+        append_brief_section(lines, "求职关注点", role_brief.get("signals", []))
+        lines.append("**相关来源**")
         items = result.get("items", [])
         if not items:
             lines.append("- 暂时没有找到高信号线索。")
@@ -388,6 +494,14 @@ def build_markdown(results: list[dict[str, Any]]) -> str:
             lines.append(f"   链接：{url if url else '暂无链接'}")
         lines.append("")
     return trim_wecom_markdown("\n".join(lines))
+
+
+def append_brief_section(lines: list[str], title: str, items: list[str]) -> None:
+    if not items:
+        return
+    lines.append(f"**{title}**")
+    for item in items:
+        lines.append(f"- {item}")
 
 
 def trim_wecom_markdown(markdown: str) -> str:
