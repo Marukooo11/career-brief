@@ -27,6 +27,13 @@ from typing import Any
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_TOPICS_FILE = ROOT / "config" / "topics.yml"
 
+QUERY_FIELDS: list[tuple[str, str]] = [
+    ("query_jd", "岗位 JD / 招聘信号"),
+    ("query_companies", "相关公司 / 产品样本"),
+    ("query_skills", "能力要求 / 面试关键词"),
+    ("query_portfolio", "作品集 / 准备方向"),
+]
+
 
 ROLE_PROFILES: dict[str, dict[str, list[str]]] = {
     "AI + 社区产品经理": {
@@ -119,8 +126,61 @@ def parse_yaml_pair(line: str) -> tuple[str, str]:
 
 def run_last30days(skill_dir: Path, topic: dict[str, str], timeout: int) -> dict[str, Any]:
     display_name = topic.get("name") or topic.get("query") or "未命名主题"
-    query = topic.get("query") or topic["name"]
-    query = maybe_translate_query(query)
+    topic_queries = get_topic_queries(topic)
+    if not topic_queries:
+        return {
+            "name": display_name,
+            "query": "",
+            "queries": [],
+            "status": "failed",
+            "error": "没有可执行的搜索 query",
+        }
+
+    all_items: list[dict[str, Any]] = []
+    shown_items: list[dict[str, Any]] = []
+    failed_queries: list[str] = []
+    query_labels: list[str] = []
+    for category, query in topic_queries:
+        query_labels.append(f"{category}：{query}")
+        query_result = run_last30days_query(skill_dir, query, category, timeout)
+        if query_result["status"] != "ok":
+            failed_queries.append(f"{category}：{query_result.get('error', '未知错误')}")
+            continue
+        all_items.extend(query_result["all_items"])
+        shown_items.extend(query_result["items"])
+
+    shown_items = dedupe_and_sort(shown_items)
+    shown_items = shown_items[: int(os.getenv("MAX_ITEMS_PER_TOPIC", "12"))]
+    shown_items = enrich_items_for_brief(shown_items)
+    status = "ok" if shown_items or all_items else "failed"
+    return {
+        "name": display_name,
+        "query": "；".join(query_labels),
+        "queries": [{"category": category, "query": query} for category, query in topic_queries],
+        "status": status,
+        "items": shown_items,
+        "role_brief": build_role_brief(display_name, "；".join(query_labels), shown_items),
+        "source_counts": count_sources(all_items),
+        "raw_count": len(dedupe_and_sort(all_items)),
+        "error": "；".join(failed_queries),
+    }
+
+
+def get_topic_queries(topic: dict[str, str]) -> list[tuple[str, str]]:
+    queries: list[tuple[str, str]] = []
+    for key, label in QUERY_FIELDS:
+        query = topic.get(key, "").strip()
+        if query:
+            queries.append((label, maybe_translate_query(query)))
+    if queries:
+        return queries
+    query = (topic.get("query") or topic.get("name") or "").strip()
+    return [("综合搜索", maybe_translate_query(query))] if query else []
+
+
+def run_last30days_query(
+    skill_dir: Path, query: str, category: str, timeout: int
+) -> dict[str, Any]:
     skill_dir = skill_dir.resolve()
     script = skill_dir / "skills" / "last30days" / "scripts" / "last30days.py"
     cmd = [
@@ -142,8 +202,8 @@ def run_last30days(skill_dir: Path, topic: dict[str, str], timeout: int) -> dict
     )
     if result.returncode != 0:
         return {
-            "name": topic.get("name", query),
             "query": query,
+            "category": category,
             "status": "failed",
             "error": (result.stderr or result.stdout)[-1200:],
         }
@@ -152,23 +212,23 @@ def run_last30days(skill_dir: Path, topic: dict[str, str], timeout: int) -> dict
         payload = json.loads(result.stdout)
     except json.JSONDecodeError:
         return {
-            "name": topic.get("name", query),
             "query": query,
+            "category": category,
             "status": "failed",
             "error": "last30days 返回的不是 JSON 输出",
             "raw": result.stdout[-1200:],
         }
 
     all_items = extract_items(payload)
-    items = enrich_items_for_brief(all_items[: int(os.getenv("MAX_ITEMS_PER_TOPIC", "5"))])
+    items = all_items[: int(os.getenv("MAX_ITEMS_PER_SEARCH", "4"))]
+    for item in all_items:
+        item["category"] = category
     return {
-        "name": display_name,
         "query": query,
+        "category": category,
         "status": "ok",
         "items": items,
-        "role_brief": build_role_brief(display_name, query, items),
-        "source_counts": count_sources(all_items),
-        "raw_count": len(all_items),
+        "all_items": all_items,
     }
 
 
@@ -468,34 +528,40 @@ def build_markdown(results: list[dict[str, Any]]) -> str:
 
         counts = ", ".join(f"{k}: {v}" for k, v in result.get("source_counts", {}).items())
         lines.append(f"**{name}**")
-        lines.append(f"> 搜索词：{result.get('query', '')}")
+        lines.append("> 本次搜索拆分：")
+        for query_info in result.get("queries", []):
+            lines.append(f"> - {query_info.get('category')}：{query_info.get('query')}")
         lines.append(f"> 找到 {result.get('raw_count', 0)} 条线索" + (f" | 来源分布：{counts}" if counts else ""))
+        if result.get("error"):
+            lines.append(f"> 部分搜索失败：{clean_text(result.get('error', ''))[:240]}")
         role_brief = result.get("role_brief") or {}
         append_brief_section(lines, "这个岗位大概做什么", role_brief.get("what", []))
         append_brief_section(lines, "常见工作内容", role_brief.get("responsibilities", []))
         append_brief_section(lines, "需要补的能力", role_brief.get("skills", []))
         append_brief_section(lines, "求职关注点", role_brief.get("signals", []))
-        lines.append("**相关来源**")
         items = result.get("items", [])
         if not items:
+            lines.append("**相关来源**")
             lines.append("- 暂时没有找到高信号线索。")
-        for index, item in enumerate(items, start=1):
-            title = item.get("title") or item.get("text") or "未命名线索"
-            meta = " / ".join(
-                str(part)
-                for part in (item.get("source"), item.get("author"))
-                if part
-            )
-            url = item.get("url")
-            lines.append(f"{index}. **{title}**")
-            lines.append(
-                f"   观点总结：{item.get('viewpoint_summary') or fallback_viewpoint_summary(item)}"
-            )
-            if meta:
-                lines.append(f"   来源：{meta}")
-            if item.get("score"):
-                lines.append(f"   信号分：{item['score']:g}")
-            lines.append(f"   链接：{url if url else '暂无链接'}")
+        for category, category_items in group_items_by_category(items).items():
+            lines.append(f"**{category}：相关来源观点**")
+            for index, item in enumerate(category_items, start=1):
+                title = item.get("title") or item.get("text") or "未命名线索"
+                meta = " / ".join(
+                    str(part)
+                    for part in (item.get("source"), item.get("author"))
+                    if part
+                )
+                url = item.get("url")
+                lines.append(f"{index}. **{title}**")
+                lines.append(
+                    f"   观点总结：{item.get('viewpoint_summary') or fallback_viewpoint_summary(item)}"
+                )
+                if meta:
+                    lines.append(f"   来源：{meta}")
+                if item.get("score"):
+                    lines.append(f"   信号分：{item['score']:g}")
+                lines.append(f"   链接：{url if url else '暂无链接'}")
         lines.append("")
     return trim_brief_markdown("\n".join(lines))
 
@@ -506,6 +572,14 @@ def append_brief_section(lines: list[str], title: str, items: list[str]) -> None
     lines.append(f"**{title}**")
     for item in items:
         lines.append(f"- {item}")
+
+
+def group_items_by_category(items: list[dict[str, Any]]) -> dict[str, list[dict[str, Any]]]:
+    grouped: dict[str, list[dict[str, Any]]] = {}
+    for item in items:
+        category = str(item.get("category") or "综合来源")
+        grouped.setdefault(category, []).append(item)
+    return grouped
 
 
 def trim_brief_markdown(markdown: str) -> str:

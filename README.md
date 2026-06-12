@@ -122,7 +122,16 @@ GitHub cron is UTC, so 12:00 Asia/Shanghai is 04:00 UTC.
 The skill decides where to search. Your keys decide which sources are available.
 
 For Chinese job-search intelligence, keep topic names in Chinese but write
-`query` in English or English-heavy search terms. The email output is Chinese.
+English-heavy search terms. Each topic can use multiple query fields:
+
+```yaml
+query_jd: real job descriptions and hiring signals
+query_companies: relevant companies and product examples
+query_skills: skills, requirements, and interview keywords
+query_portfolio: portfolio projects and preparation ideas
+```
+
+The email output is Chinese.
 If `OPENAI_API_KEY` is configured, ad-hoc Chinese manual topics are translated
 into English search queries, and each source gets a short Chinese explanation.
 Without a model key, the workflow still sends a Chinese-formatted email, but
@@ -135,8 +144,13 @@ The brief format is:
 
 ```text
 主题
-搜索词
+本次搜索拆分
 找到多少条线索 / 来源分布
+这个岗位大概做什么
+常见工作内容
+需要补的能力
+求职关注点
+岗位 JD / 招聘信号：相关来源观点
 1. 来源标题
    观点总结：中文总结这条帖子/来源的核心观点和求职信号
    来源：平台/作者

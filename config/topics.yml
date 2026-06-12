@@ -4,6 +4,12 @@
 # a comfortable first version for GitHub Actions free minutes.
 topics:
   - name: "AI + 社区产品经理"
-    query: "AI community product manager job responsibilities community-led growth social product creator community product manager hiring skills"
+    query_jd: "AI community product manager job responsibilities hiring community-led growth social product"
+    query_companies: "AI community product creator community social product startup examples"
+    query_skills: "community product manager AI skills interview requirements community-led growth UGC moderation"
+    query_portfolio: "AI community product manager portfolio project community assistant creator community"
   - name: "AI + 出海电商产品经理"
-    query: "AI cross-border ecommerce product manager job responsibilities global ecommerce marketplace DTC Shopify TikTok Shop product manager hiring skills"
+    query_jd: "AI ecommerce product manager job responsibilities cross-border ecommerce global ecommerce hiring"
+    query_companies: "AI ecommerce startup Shopify seller tools TikTok Shop AI shopping assistant product"
+    query_skills: "cross-border ecommerce product manager skills AI global ecommerce marketplace DTC requirements"
+    query_portfolio: "AI ecommerce product manager portfolio project Shopify seller assistant global ecommerce"
