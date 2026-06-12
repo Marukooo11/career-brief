@@ -31,6 +31,8 @@ QUERY_FIELDS: list[tuple[str, str]] = [
     ("query_jd", "岗位 JD / 招聘信号"),
     ("query_companies", "相关公司 / 产品样本"),
     ("query_skills", "能力要求 / 面试关键词"),
+    ("query_learning", "如何新增能力 / 学习路径"),
+    ("query_experience", "岗位经验分享 / 从业者视角"),
     ("query_portfolio", "作品集 / 准备方向"),
 ]
 

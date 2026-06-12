@@ -128,6 +128,8 @@ English-heavy search terms. Each topic can use multiple query fields:
 query_jd: real job descriptions and hiring signals
 query_companies: relevant companies and product examples
 query_skills: skills, requirements, and interview keywords
+query_learning: learning paths and capability-building advice
+query_experience: practitioners' experience, interviews, and lessons learned
 query_portfolio: portfolio projects and preparation ideas
 ```
 
@@ -151,6 +153,8 @@ The brief format is:
 需要补的能力
 求职关注点
 岗位 JD / 招聘信号：相关来源观点
+如何新增能力 / 学习路径：相关来源观点
+岗位经验分享 / 从业者视角：相关来源观点
 1. 来源标题
    观点总结：中文总结这条帖子/来源的核心观点和求职信号
    来源：平台/作者
