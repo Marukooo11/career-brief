@@ -33,6 +33,11 @@ QUERY_FIELDS: list[tuple[str, str]] = [
     ("query_experience", "帖子经验 / 从业者观点"),
 ]
 
+DISPLAY_SOURCE_CATEGORIES = {
+    "如何新增能力 / 学习路径",
+    "帖子经验 / 从业者观点",
+}
+
 
 ROLE_PROFILES: dict[str, dict[str, list[str]]] = {
     "AI + 社区产品经理": {
@@ -148,17 +153,19 @@ def run_last30days(skill_dir: Path, topic: dict[str, str], timeout: int) -> dict
         all_items.extend(query_result["all_items"])
         shown_items.extend(query_result["items"])
 
-    shown_items = dedupe_and_sort(shown_items)
-    shown_items = shown_items[: int(os.getenv("MAX_ITEMS_PER_TOPIC", "12"))]
-    shown_items = enrich_items_for_brief(shown_items)
-    status = "ok" if shown_items or all_items else "failed"
+    research_items = dedupe_and_sort(shown_items)
+    display_items = [
+        item for item in research_items if item.get("category") in DISPLAY_SOURCE_CATEGORIES
+    ][: int(os.getenv("MAX_ITEMS_PER_TOPIC", "8"))]
+    display_items = enrich_items_for_brief(display_items)
+    status = "ok" if research_items or all_items else "failed"
     return {
         "name": display_name,
         "query": "；".join(query_labels),
         "queries": [{"category": category, "query": query} for category, query in topic_queries],
         "status": status,
-        "items": shown_items,
-        "role_brief": build_role_brief(display_name, "；".join(query_labels), shown_items),
+        "items": display_items,
+        "role_brief": build_role_brief(display_name, "；".join(query_labels), research_items),
         "source_counts": count_sources(all_items),
         "raw_count": len(dedupe_and_sort(all_items)),
         "error": "；".join(failed_queries),
@@ -269,9 +276,10 @@ def summarize_post_for_job_search(item: dict[str, Any]) -> str:
     prompt = (
         "你在帮一位中文产品经理做求职研究。请阅读下面这条帖子/经验/讨论来源，"
         "输出严格 JSON，不要 markdown。字段必须是 main、relevance、why_read。"
-        "main：用中文概括主要内容或观点；relevance：说明它和当前岗位方向/能力准备的关系；"
-        "why_read：说明为什么值得读，能带来什么求职启发。"
-        "每个字段 1 句话，别编造原文没有的公司、岗位或数据。\n\n"
+        "main：用中文概括帖子主要内容或核心观点；"
+        "relevance：说明它和搜索主题、岗位工作内容或能力补充的具体关系；"
+        "why_read：说明为什么值得读，最好指出能帮用户补哪类认知、简历素材或面试表达。"
+        "每个字段 1 句话，具体一点，别编造原文没有的公司、岗位或数据。\n\n"
         f"来源：{source}\n标题：{title}\n摘要：{text}"
     )
     content = call_openai_text(prompt, max_tokens=420)
@@ -384,7 +392,9 @@ def synthesize_role_brief(
         "你在帮一位中文产品经理做求职方向研究。"
         "请基于给定岗位方向和来源，输出严格 JSON，不要 markdown。"
         "JSON 字段必须是 what、responsibilities、skills、signals，每个字段是 2-4 条中文短句。"
-        "重点回答：这个岗位做什么、日常职责、需要的能力、求职时该关注什么关键词/公司/作品集方向。"
+        "重点回答：这个岗位大概做什么，以及用户应该如何补足所需能力。"
+        "skills 字段必须写成可执行的补能力动作，例如研究哪些产品、做什么练习、准备什么作品集材料。"
+        "signals 字段写可转化成简历/作品集/面试表达的方向。"
         "如果来源不足，可以结合常识，但要保持谨慎，不要编造具体招聘信息。\n\n"
         f"岗位方向：{topic_name}\n搜索词：{query}\n来源：\n{evidence}"
     )
@@ -581,10 +591,13 @@ def build_markdown(results: list[dict[str, Any]]) -> str:
         append_brief_section(lines, "这个岗位大概做什么", role_brief.get("what", []))
         append_brief_section(lines, "需要补的能力，以及怎么补", role_brief.get("skills", []))
         append_brief_section(lines, "可转化成简历/作品集的方向", role_brief.get("signals", []))
+        lines.append(
+            "> 下面只展开学习路径和经验分享类来源；岗位/JD 类信息已用于上面的综合判断，不逐条列出。"
+        )
         items = result.get("items", [])
         if not items:
-            lines.append("**相关来源**")
-            lines.append("- 暂时没有找到高信号线索。")
+            lines.append("**学习/经验类来源**")
+            lines.append("- 暂时没有找到适合展开的学习路径或经验分享来源。")
         for category, category_items in group_items_by_category(items).items():
             lines.append(f"**{category}：相关来源观点**")
             for index, item in enumerate(category_items, start=1):

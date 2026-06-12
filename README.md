@@ -138,6 +138,9 @@ English source titles and snippets remain mostly untranslated.
 
 By default, each topic/search direction is sent as a separate email
 (`SPLIT_EMAIL_BY_TOPIC=true`) so long briefs do not crowd out another direction.
+The workflow may collect many items, but the email only expands learning-path
+and practitioner-experience sources. Role/JD-style sources are used to shape the
+top-level synthesis and are not listed one by one.
 
 The brief format is:
 
@@ -148,7 +151,6 @@ The brief format is:
 这个岗位大概做什么
 需要补的能力，以及怎么补
 可转化成简历/作品集的方向
-岗位理解 / 工作内容：相关来源观点
 如何新增能力 / 学习路径：相关来源观点
 帖子经验 / 从业者观点：相关来源观点
 1. 来源标题
