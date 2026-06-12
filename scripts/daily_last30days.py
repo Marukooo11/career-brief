@@ -28,12 +28,9 @@ ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_TOPICS_FILE = ROOT / "config" / "topics.yml"
 
 QUERY_FIELDS: list[tuple[str, str]] = [
-    ("query_jd", "岗位 JD / 招聘信号"),
-    ("query_companies", "相关公司 / 产品样本"),
-    ("query_skills", "能力要求 / 面试关键词"),
+    ("query_role", "岗位理解 / 工作内容"),
     ("query_learning", "如何新增能力 / 学习路径"),
-    ("query_experience", "岗位经验分享 / 从业者视角"),
-    ("query_portfolio", "作品集 / 准备方向"),
+    ("query_experience", "帖子经验 / 从业者观点"),
 ]
 
 
@@ -49,9 +46,9 @@ ROLE_PROFILES: dict[str, dict[str, list[str]]] = {
             "把用户反馈、社区讨论和数据指标转成产品需求，推动实验和迭代。",
         ],
         "skills": [
-            "社区/内容产品经验，理解用户分层、激励机制、冷启动和治理。",
-            "AI 产品 sense，能判断哪些社区流程适合用模型辅助，哪些不应该过度自动化。",
-            "数据分析、增长实验、用户访谈、prompt/工作流设计、跨团队推进能力。",
+            "补社区/内容产品能力：拆 3 个社区产品的用户分层、激励机制、冷启动和治理策略。",
+            "补 AI 产品判断力：选一个社区流程，设计 AI 辅助方案，并说明哪些环节不能完全自动化。",
+            "补数据和增长能力：围绕活跃、留存、贡献率、内容质量设计一套实验和指标看板。",
         ],
         "signals": [
             "搜索关键词：community-led growth、creator community、AI social product、developer community、UGC moderation。",
@@ -69,9 +66,9 @@ ROLE_PROFILES: dict[str, dict[str, list[str]]] = {
             "和运营、销售、算法/工程团队一起做转化率、GMV、留存、付费率等指标优化。",
         ],
         "skills": [
-            "电商/交易/商家工具产品经验，理解 B 端卖家需求和 C 端购物体验。",
-            "英文资料检索和海外市场理解能力，能看懂 Shopify、Amazon、TikTok Shop、DTC 工具生态。",
-            "AI 落地能力：多语言生成、商品数据结构化、营销自动化、客服机器人、数据看板。",
+            "补电商链路能力：梳理选品、刊登、营销、支付、物流、售后、合规的完整卖家流程。",
+            "补海外市场理解：定期研究 Shopify、Amazon、TikTok Shop、DTC 工具生态和卖家痛点。",
+            "补 AI 落地能力：做一个多语言商品上架、广告素材或客服自动化的产品方案。",
         ],
         "signals": [
             "搜索关键词：global ecommerce、cross-border ecommerce、AI shopping assistant、DTC、Shopify app、TikTok Shop seller tools。",
@@ -254,30 +251,44 @@ def contains_cjk(value: str) -> bool:
 def enrich_items_for_brief(items: list[dict[str, Any]]) -> list[dict[str, Any]]:
     if not os.getenv("OPENAI_API_KEY"):
         for item in items:
-            item["viewpoint_summary"] = fallback_viewpoint_summary(item)
+            item["post_summary"] = fallback_post_summary(item)
         return items
 
     enriched: list[dict[str, Any]] = []
     for item in items:
-        summary = summarize_item_viewpoint_in_chinese(item)
-        item["viewpoint_summary"] = summary or fallback_viewpoint_summary(item)
+        summary = summarize_post_for_job_search(item)
+        item["post_summary"] = summary or fallback_post_summary(item)
         enriched.append(item)
     return enriched
 
 
-def summarize_item_viewpoint_in_chinese(item: dict[str, Any]) -> str:
+def summarize_post_for_job_search(item: dict[str, Any]) -> str:
     title = item.get("title") or ""
     text = item.get("text") or ""
     source = item.get("source") or "unknown"
     prompt = (
-        "你在帮一位中文产品经理找 AI+社区、AI+出海电商方向的工作机会和行业信号。"
-        "请总结下面这条帖子/来源的核心观点，而不是描述它是什么。"
-        "输出中文，重点写：作者/讨论者在主张什么、担心什么、看到了什么趋势，"
-        "以及这对产品经理求职判断有什么信号。"
-        "不要编造链接、公司、岗位；不要说“这是一篇/这是一条”；不要超过 80 个中文字。\n\n"
+        "你在帮一位中文产品经理做求职研究。请阅读下面这条帖子/经验/讨论来源，"
+        "输出严格 JSON，不要 markdown。字段必须是 main、relevance、why_read。"
+        "main：用中文概括主要内容或观点；relevance：说明它和当前岗位方向/能力准备的关系；"
+        "why_read：说明为什么值得读，能带来什么求职启发。"
+        "每个字段 1 句话，别编造原文没有的公司、岗位或数据。\n\n"
         f"来源：{source}\n标题：{title}\n摘要：{text}"
     )
-    return call_openai_text(prompt, max_tokens=220)
+    content = call_openai_text(prompt, max_tokens=420)
+    if not content:
+        return ""
+    try:
+        data = json.loads(strip_json_fence(content))
+    except json.JSONDecodeError:
+        return ""
+    return json.dumps(
+        {
+            "main": clean_text(str(data.get("main", ""))),
+            "relevance": clean_text(str(data.get("relevance", ""))),
+            "why_read": clean_text(str(data.get("why_read", ""))),
+        },
+        ensure_ascii=False,
+    )
 
 
 def call_openai_text(prompt: str, max_tokens: int = 200) -> str:
@@ -316,12 +327,42 @@ def call_openai_text(prompt: str, max_tokens: int = 200) -> str:
     return clean_text(content)
 
 
-def fallback_viewpoint_summary(item: dict[str, Any]) -> str:
+def fallback_post_summary(item: dict[str, Any]) -> str:
     title = item.get("title") or "这条线索"
     text = item.get("text") or ""
-    if text and text != title:
-        return f"观点线索：围绕“{title}”，原文提到 {text[:120]}"
-    return f"观点线索：标题指向“{title}”，可继续查看原文判断其对岗位职责、能力要求或行业趋势的启发。"
+    main = f"围绕“{title}”展开讨论。" if not text else f"围绕“{title}”，原文提到：{text[:120]}"
+    relevance = "可用来判断该方向的真实工作内容、能力要求或从业者关注点。"
+    why_read = "适合作为后续精读材料，帮助你提炼简历关键词、面试表达或作品集切入点。"
+    return json.dumps(
+        {"main": main, "relevance": relevance, "why_read": why_read},
+        ensure_ascii=False,
+    )
+
+
+def parse_post_summary(item: dict[str, Any]) -> dict[str, str]:
+    raw = item.get("post_summary") or fallback_post_summary(item)
+    if isinstance(raw, dict):
+        data = raw
+    else:
+        try:
+            data = json.loads(str(raw))
+        except json.JSONDecodeError:
+            data = {"main": str(raw), "relevance": "", "why_read": ""}
+    return {
+        "main": clean_text(str(data.get("main", ""))),
+        "relevance": clean_text(str(data.get("relevance", ""))),
+        "why_read": clean_text(str(data.get("why_read", ""))),
+    }
+
+
+def format_post_summary_inline(item: dict[str, Any]) -> str:
+    summary = parse_post_summary(item)
+    parts = [
+        f"主要内容：{summary['main']}" if summary["main"] else "",
+        f"关联：{summary['relevance']}" if summary["relevance"] else "",
+        f"推荐理由：{summary['why_read']}" if summary["why_read"] else "",
+    ]
+    return "；".join(part for part in parts if part)
 
 
 def build_role_brief(topic_name: str, query: str, items: list[dict[str, Any]]) -> dict[str, list[str]]:
@@ -336,7 +377,7 @@ def synthesize_role_brief(
     topic_name: str, query: str, items: list[dict[str, Any]]
 ) -> dict[str, list[str]]:
     evidence = "\n".join(
-        f"- 标题：{item.get('title', '')}\n  原始摘要：{item.get('text', '')}\n  观点总结：{item.get('viewpoint_summary', '')}\n  来源：{item.get('source', '')}\n  链接：{item.get('url', '')}"
+        f"- 标题：{item.get('title', '')}\n  原始摘要：{item.get('text', '')}\n  帖子摘要：{format_post_summary_inline(item)}\n  来源：{item.get('source', '')}\n  链接：{item.get('url', '')}"
         for item in items[:8]
     )
     prompt = (
@@ -538,9 +579,8 @@ def build_markdown(results: list[dict[str, Any]]) -> str:
             lines.append(f"> 部分搜索失败：{clean_text(result.get('error', ''))[:240]}")
         role_brief = result.get("role_brief") or {}
         append_brief_section(lines, "这个岗位大概做什么", role_brief.get("what", []))
-        append_brief_section(lines, "常见工作内容", role_brief.get("responsibilities", []))
-        append_brief_section(lines, "需要补的能力", role_brief.get("skills", []))
-        append_brief_section(lines, "求职关注点", role_brief.get("signals", []))
+        append_brief_section(lines, "需要补的能力，以及怎么补", role_brief.get("skills", []))
+        append_brief_section(lines, "可转化成简历/作品集的方向", role_brief.get("signals", []))
         items = result.get("items", [])
         if not items:
             lines.append("**相关来源**")
@@ -555,10 +595,14 @@ def build_markdown(results: list[dict[str, Any]]) -> str:
                     if part
                 )
                 url = item.get("url")
+                post_summary = parse_post_summary(item)
                 lines.append(f"{index}. **{title}**")
-                lines.append(
-                    f"   观点总结：{item.get('viewpoint_summary') or fallback_viewpoint_summary(item)}"
-                )
+                if post_summary["main"]:
+                    lines.append(f"   主要内容：{post_summary['main']}")
+                if post_summary["relevance"]:
+                    lines.append(f"   与搜索主题的关联：{post_summary['relevance']}")
+                if post_summary["why_read"]:
+                    lines.append(f"   推荐阅读理由：{post_summary['why_read']}")
                 if meta:
                     lines.append(f"   来源：{meta}")
                 if item.get("score"):

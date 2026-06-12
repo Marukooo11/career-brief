@@ -125,12 +125,9 @@ For Chinese job-search intelligence, keep topic names in Chinese but write
 English-heavy search terms. Each topic can use multiple query fields:
 
 ```yaml
-query_jd: real job descriptions and hiring signals
-query_companies: relevant companies and product examples
-query_skills: skills, requirements, and interview keywords
+query_role: what the role does and how the work is described
 query_learning: learning paths and capability-building advice
 query_experience: practitioners' experience, interviews, and lessons learned
-query_portfolio: portfolio projects and preparation ideas
 ```
 
 The email output is Chinese.
@@ -149,14 +146,15 @@ The brief format is:
 本次搜索拆分
 找到多少条线索 / 来源分布
 这个岗位大概做什么
-常见工作内容
-需要补的能力
-求职关注点
-岗位 JD / 招聘信号：相关来源观点
+需要补的能力，以及怎么补
+可转化成简历/作品集的方向
+岗位理解 / 工作内容：相关来源观点
 如何新增能力 / 学习路径：相关来源观点
-岗位经验分享 / 从业者视角：相关来源观点
+帖子经验 / 从业者观点：相关来源观点
 1. 来源标题
-   观点总结：中文总结这条帖子/来源的核心观点和求职信号
+   主要内容：这篇帖子的主要内容
+   与搜索主题的关联：为什么和这个岗位/能力准备有关
+   推荐阅读理由：为什么值得点开读
    来源：平台/作者
    信号分：排序分
    链接：原文链接
