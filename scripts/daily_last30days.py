@@ -158,6 +158,8 @@ def run_last30days(skill_dir: Path, topic: dict[str, str], timeout: int) -> dict
     display_items = [
         item for item in research_items if item.get("category") in DISPLAY_SOURCE_CATEGORIES
     ][: int(os.getenv("MAX_ITEMS_PER_TOPIC", "8"))]
+    for item in display_items:
+        item["topic_name"] = display_name
     display_items = enrich_items_for_brief(display_items)
     status = "ok" if research_items or all_items else "failed"
     return {
@@ -339,13 +341,61 @@ def call_openai_text(prompt: str, max_tokens: int = 200) -> str:
 def fallback_post_summary(item: dict[str, Any]) -> str:
     title = item.get("title") or "这条线索"
     text = item.get("text") or ""
-    main = f"围绕“{title}”展开讨论。" if not text else f"围绕“{title}”，原文提到：{text[:120]}"
-    relevance = "可用来判断该方向的真实工作内容、能力要求或从业者关注点。"
-    why_read = "适合作为后续精读材料，帮助你提炼简历关键词、面试表达或作品集切入点。"
+    topic = item.get("topic_name") or "这个方向"
+    category = item.get("category") or "相关来源"
+    source = item.get("source") or "unknown"
+    signal = infer_job_signal(title, text)
+    main = build_fallback_main(title, text)
+    relevance = build_fallback_relevance(topic, category, title, signal)
+    why_read = build_fallback_why_read(topic, category, title, source, signal)
     return json.dumps(
         {"main": main, "relevance": relevance, "why_read": why_read},
         ensure_ascii=False,
     )
+
+
+def build_fallback_main(title: str, text: str) -> str:
+    if text and text != title:
+        return f"围绕“{title}”，可见信息提到：{text[:140]}"
+    return f"标题聚焦“{title}”，但当前数据源没有提供足够正文，需要点开原文确认具体观点。"
+
+
+def build_fallback_relevance(topic: str, category: str, title: str, signal: str) -> str:
+    if "学习路径" in category:
+        return f"它和“{topic}”的关系在于补足“{signal}”这类能力，可用来拆解学习顺序或练习任务。"
+    if "经验" in category or "从业者" in category:
+        return f"它更接近从业者/讨论者视角，能帮助判断“{topic}”在实际工作中如何体现“{signal}”。"
+    return f"它可作为“{topic}”的辅助材料，重点观察其中和“{signal}”相关的岗位要求。"
+
+
+def build_fallback_why_read(
+    topic: str, category: str, title: str, source: str, signal: str
+) -> str:
+    source_hint = source if source and source != "unknown" else "原文"
+    if "学习路径" in category:
+        return f"建议阅读是因为它可能把“{signal}”从抽象能力变成可执行练习，适合转成你的补能力计划或作品集任务。"
+    if "经验" in category or "从业者" in category:
+        return f"建议阅读是因为它可能提供“{source_hint}”上的真实表达和问题意识，可提炼成面试中解释你为什么选择“{topic}”的素材。"
+    return f"建议阅读是因为标题“{title}”可能包含和“{topic}”相关的判断依据，但需要原文验证细节。"
+
+
+def infer_job_signal(title: str, text: str) -> str:
+    content = f"{title} {text}".lower()
+    keyword_signals = [
+        (("portfolio", "作品集", "project", "项目", "case study"), "作品集项目设计"),
+        (("interview", "面试", "面经"), "面试表达和岗位理解"),
+        (("skill", "skills", "能力", "学习", "learning", "learn"), "能力补充路径"),
+        (("growth", "增长", "retention", "留存", "activation"), "增长、留存和指标拆解"),
+        (("community", "社区", "creator", "创作者", "ugc"), "社区机制、内容生态和用户关系"),
+        (("ecommerce", "电商", "cross-border", "跨境", "shopify", "tiktok shop", "seller"), "电商链路、卖家工具和海外市场"),
+        (("ai", "llm", "agent", "automation", "自动化"), "AI 功能落地和工作流自动化"),
+        (("moderation", "审核", "trust", "治理", "safety"), "社区治理、信任和内容质量"),
+        (("job", "hiring", "招聘", "岗位", "jd"), "招聘要求和岗位职责"),
+    ]
+    for keywords, signal in keyword_signals:
+        if any(keyword in content for keyword in keywords):
+            return signal
+    return "岗位职责、能力要求或行业趋势"
 
 
 def parse_post_summary(item: dict[str, Any]) -> dict[str, str]:
@@ -586,6 +636,8 @@ def build_markdown(results: list[dict[str, Any]]) -> str:
         for query_info in result.get("queries", []):
             lines.append(f"> - {query_info.get('category')}：{query_info.get('query')}")
         lines.append(f"> 找到 {result.get('raw_count', 0)} 条线索" + (f" | 来源分布：{counts}" if counts else ""))
+        if not os.getenv("OPENAI_API_KEY"):
+            lines.append("> 未配置 OPENAI_API_KEY：以下帖子摘要基于标题/摘要做弱分析；配置模型后会逐条理解原始内容并生成更贴合的中文总结。")
         if result.get("error"):
             lines.append(f"> 部分搜索失败：{clean_text(result.get('error', ''))[:240]}")
         role_brief = result.get("role_brief") or {}

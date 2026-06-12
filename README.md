@@ -133,9 +133,12 @@ query_experience: practitioners' experience, interviews, and lessons learned
 
 The email output is Chinese.
 If `OPENAI_API_KEY` is configured, ad-hoc Chinese manual topics are translated
-into English search queries, and each source gets a short Chinese explanation.
+into English search queries, and each source gets a specific Chinese summary
+covering main content, relevance to the search topic, and why it is worth
+reading.
 Without a model key, the workflow still sends a Chinese-formatted email, but
-English source titles and snippets remain mostly untranslated.
+post summaries are weaker and based only on titles/snippets returned by the
+source.
 
 By default, each topic/search direction is sent as a separate email
 (`SPLIT_EMAIL_BY_TOPIC=true`) so long briefs do not crowd out another direction.
