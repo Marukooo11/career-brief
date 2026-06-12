@@ -192,28 +192,30 @@ def contains_cjk(value: str) -> bool:
 def enrich_items_for_brief(items: list[dict[str, Any]]) -> list[dict[str, Any]]:
     if not os.getenv("OPENAI_API_KEY"):
         for item in items:
-            item["brief_summary"] = fallback_item_summary(item)
+            item["viewpoint_summary"] = fallback_viewpoint_summary(item)
         return items
 
     enriched: list[dict[str, Any]] = []
     for item in items:
-        summary = summarize_item_in_chinese(item)
-        item["brief_summary"] = summary or fallback_item_summary(item)
+        summary = summarize_item_viewpoint_in_chinese(item)
+        item["viewpoint_summary"] = summary or fallback_viewpoint_summary(item)
         enriched.append(item)
     return enriched
 
 
-def summarize_item_in_chinese(item: dict[str, Any]) -> str:
+def summarize_item_viewpoint_in_chinese(item: dict[str, Any]) -> str:
     title = item.get("title") or ""
     text = item.get("text") or ""
     source = item.get("source") or "unknown"
     prompt = (
         "你在帮一位中文产品经理找 AI+社区、AI+出海电商方向的工作机会和行业信号。"
-        "请把下面这条英文或中文来源压缩成一句自然中文说明，说明它是什么、为什么可能有参考价值。"
-        "不要编造链接、公司、岗位；不要超过 60 个中文字。\n\n"
+        "请总结下面这条帖子/来源的核心观点，而不是描述它是什么。"
+        "输出中文，重点写：作者/讨论者在主张什么、担心什么、看到了什么趋势，"
+        "以及这对产品经理求职判断有什么信号。"
+        "不要编造链接、公司、岗位；不要说“这是一篇/这是一条”；不要超过 80 个中文字。\n\n"
         f"来源：{source}\n标题：{title}\n摘要：{text}"
     )
-    return call_openai_text(prompt, max_tokens=180)
+    return call_openai_text(prompt, max_tokens=220)
 
 
 def call_openai_text(prompt: str, max_tokens: int = 200) -> str:
@@ -252,12 +254,12 @@ def call_openai_text(prompt: str, max_tokens: int = 200) -> str:
     return clean_text(content)
 
 
-def fallback_item_summary(item: dict[str, Any]) -> str:
+def fallback_viewpoint_summary(item: dict[str, Any]) -> str:
     title = item.get("title") or "这条线索"
     text = item.get("text") or ""
     if text and text != title:
-        return f"这是一条关于“{title}”的来源，摘要显示：{text[:120]}"
-    return f"这是一条关于“{title}”的外部来源，可作为趋势或讨论线索继续查看。"
+        return f"观点线索：围绕“{title}”，原文提到 {text[:120]}"
+    return f"观点线索：标题指向“{title}”，可继续查看原文判断其对岗位职责、能力要求或行业趋势的启发。"
 
 
 def build_role_brief(topic_name: str, query: str, items: list[dict[str, Any]]) -> dict[str, list[str]]:
@@ -272,7 +274,7 @@ def synthesize_role_brief(
     topic_name: str, query: str, items: list[dict[str, Any]]
 ) -> dict[str, list[str]]:
     evidence = "\n".join(
-        f"- 标题：{item.get('title', '')}\n  摘要：{item.get('text', '')}\n  来源：{item.get('source', '')}\n  链接：{item.get('url', '')}"
+        f"- 标题：{item.get('title', '')}\n  原始摘要：{item.get('text', '')}\n  观点总结：{item.get('viewpoint_summary', '')}\n  来源：{item.get('source', '')}\n  链接：{item.get('url', '')}"
         for item in items[:8]
     )
     prompt = (
@@ -486,14 +488,16 @@ def build_markdown(results: list[dict[str, Any]]) -> str:
             )
             url = item.get("url")
             lines.append(f"{index}. **{title}**")
-            lines.append(f"   这是什么：{item.get('brief_summary') or fallback_item_summary(item)}")
+            lines.append(
+                f"   观点总结：{item.get('viewpoint_summary') or fallback_viewpoint_summary(item)}"
+            )
             if meta:
                 lines.append(f"   来源：{meta}")
             if item.get("score"):
                 lines.append(f"   信号分：{item['score']:g}")
             lines.append(f"   链接：{url if url else '暂无链接'}")
         lines.append("")
-    return trim_wecom_markdown("\n".join(lines))
+    return trim_brief_markdown("\n".join(lines))
 
 
 def append_brief_section(lines: list[str], title: str, items: list[str]) -> None:
@@ -504,10 +508,8 @@ def append_brief_section(lines: list[str], title: str, items: list[str]) -> None
         lines.append(f"- {item}")
 
 
-def trim_wecom_markdown(markdown: str) -> str:
-    # WeCom robot markdown content has practical length limits. Keep the digest
-    # readable and avoid rejected messages.
-    limit = int(os.getenv("WECOM_MARKDOWN_LIMIT", "3800"))
+def trim_brief_markdown(markdown: str) -> str:
+    limit = int(os.getenv("BRIEF_MARKDOWN_LIMIT", "12000"))
     if len(markdown) <= limit:
         return markdown
     suffix = "\n\n> 内容过长，已截断。完整原始结果可在 GitHub Actions artifact 中查看。"
@@ -541,14 +543,16 @@ def send_wecom(webhook: str, markdown: str, dry_run: bool) -> None:
         raise SystemExit(f"WeCom delivery failed: {body}")
 
 
-def send_email(markdown: str, dry_run: bool) -> None:
+def send_email(markdown: str, dry_run: bool, subject_suffix: str = "") -> None:
     host = os.getenv("SMTP_HOST", "")
     port = int(os.getenv("SMTP_PORT", "587"))
     username = os.getenv("SMTP_USERNAME", "")
     password = os.getenv("SMTP_PASSWORD", "")
     sender = os.getenv("EMAIL_FROM", username)
     recipients = split_recipients(os.getenv("EMAIL_TO", ""))
-    subject = os.getenv("EMAIL_SUBJECT", "Last30Days Daily Brief")
+    subject = os.getenv("EMAIL_SUBJECT", "AI 产品经理求职方向研究")
+    if subject_suffix:
+        subject = f"{subject} - {subject_suffix}"
 
     if dry_run:
         print(markdown)
@@ -622,6 +626,22 @@ def write_artifacts(results: list[dict[str, Any]], markdown: str, artifacts_dir:
         json.dumps(results, ensure_ascii=False, indent=2),
         encoding="utf-8",
     )
+    for result in results:
+        name = slugify(result.get("name", "topic"))
+        topic_markdown = build_markdown([result])
+        (artifacts_dir / f"{date_label}-{name}-brief.md").write_text(
+            topic_markdown,
+            encoding="utf-8",
+        )
+
+
+def slugify(value: str) -> str:
+    slug = re.sub(r"[^0-9A-Za-z\u3400-\u9fff]+", "-", value).strip("-")
+    return slug[:80] or "topic"
+
+
+def should_split_email_by_topic() -> bool:
+    return os.getenv("SPLIT_EMAIL_BY_TOPIC", "true").lower() in {"1", "true", "yes", "on"}
 
 
 def main() -> int:
@@ -652,7 +672,15 @@ def main() -> int:
     write_artifacts(results, markdown, args.artifacts_dir)
 
     if args.delivery in ("email", "both"):
-        send_email(markdown, args.dry_run)
+        if should_split_email_by_topic() and len(results) > 1:
+            for result in results:
+                send_email(
+                    build_markdown([result]),
+                    args.dry_run,
+                    subject_suffix=str(result.get("name", "未命名方向")),
+                )
+        else:
+            send_email(markdown, args.dry_run)
     if args.delivery in ("wecom", "both"):
         webhook = os.getenv("WECOM_BOT_WEBHOOK", "")
         if not webhook and not args.dry_run:

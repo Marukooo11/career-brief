@@ -43,7 +43,8 @@ jobs:
 
       # Optional behavior knobs.
       LAST30DAYS_LOOKBACK_DAYS: "30"
-      MAX_ITEMS_PER_TOPIC: "5"
+      MAX_ITEMS_PER_TOPIC: "8"
+      SPLIT_EMAIL_BY_TOPIC: "true"
       TOPICS_TEXT: ${{ inputs.topics }}
 
     steps:

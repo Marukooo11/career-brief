@@ -128,6 +128,9 @@ into English search queries, and each source gets a short Chinese explanation.
 Without a model key, the workflow still sends a Chinese-formatted email, but
 English source titles and snippets remain mostly untranslated.
 
+By default, each topic/search direction is sent as a separate email
+(`SPLIT_EMAIL_BY_TOPIC=true`) so long briefs do not crowd out another direction.
+
 The brief format is:
 
 ```text
@@ -135,7 +138,7 @@ The brief format is:
 搜索词
 找到多少条线索 / 来源分布
 1. 来源标题
-   这是什么：中文说明
+   观点总结：中文总结这条帖子/来源的核心观点和求职信号
    来源：平台/作者
    信号分：排序分
    链接：原文链接
