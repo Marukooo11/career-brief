@@ -126,6 +126,7 @@ English-heavy search terms. Each topic can use multiple query fields:
 
 ```yaml
 query_role: what the role does and how the work is described
+query_china_market: China-market sources such as Zhihu, Xiaohongshu, Maimai, 36Kr, and 人人都是产品经理
 query_learning: learning paths and capability-building advice
 query_experience: practitioners' experience, interviews, and lessons learned
 ```
@@ -140,7 +141,9 @@ By default, each topic/search direction is sent as a separate email
 (`SPLIT_EMAIL_BY_TOPIC=true`) so long briefs do not crowd out another direction.
 The workflow may collect many items, but the email only expands learning-path
 and practitioner-experience sources. Role/JD-style sources are used to shape the
-top-level synthesis and are not listed one by one.
+top-level synthesis and are not listed one by one. China-market sources are also
+used mainly for the synthesis unless they appear in learning or experience
+results.
 
 The brief format is:
 

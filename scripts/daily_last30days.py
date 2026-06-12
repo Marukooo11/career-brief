@@ -29,6 +29,7 @@ DEFAULT_TOPICS_FILE = ROOT / "config" / "topics.yml"
 
 QUERY_FIELDS: list[tuple[str, str]] = [
     ("query_role", "岗位理解 / 工作内容"),
+    ("query_china_market", "中国市场 / 本土来源"),
     ("query_learning", "如何新增能力 / 学习路径"),
     ("query_experience", "帖子经验 / 从业者观点"),
 ]
