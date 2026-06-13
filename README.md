@@ -8,6 +8,7 @@ Career Brief 是一个面向求职者、转岗者和作品集准备者的 AI 信
 
 ```text
 信息输入 -> 岗位理解 -> 能力拆解 -> 面试表达 -> 作品集机会
+```
 
 ## 适合谁使用
 
@@ -167,6 +168,7 @@ topics:
     query_china_market: "another target role chinese discussion career path"
     query_learning: "another target role learning roadmap"
     query_experience: "another target role practitioner experience"
+```
 
 ## 迭代路线
 
