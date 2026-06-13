@@ -1,0 +1,26 @@
+# Copy this file to config/topics.yml, then replace the examples with your own
+# job-search directions.
+#
+# Tips:
+# - Keep name readable; it becomes the email section title.
+# - Mix English search terms with Chinese role/industry keywords.
+# - Start with 1-3 topics to keep GitHub Actions runs short.
+
+topics:
+  - name: "你的目标岗位"
+    query_role: "target role responsibilities job description required skills"
+    query_china_market: "你的目标岗位 岗位 JD 经验 面经 site:zhihu.com OR site:xiaohongshu.com OR site:maimai.cn OR site:woshipm.com"
+    query_learning: "how to become target role learning path skills roadmap"
+    query_experience: "target role experience day in the life interview lessons learned"
+
+  - name: "AI + 教育产品经理"
+    query_role: "AI education product manager responsibilities edtech AI tutor learning platform"
+    query_china_market: "AI 教育产品经理 智能教育 产品经理 岗位 经验 site:zhihu.com OR site:xiaohongshu.com OR site:woshipm.com"
+    query_learning: "how to become AI education product manager edtech learning path"
+    query_experience: "AI education product manager experience edtech product manager day in the life lessons learned"
+
+  - name: "海外增长产品经理"
+    query_role: "global growth product manager responsibilities user acquisition activation retention monetization"
+    query_china_market: "海外增长 产品经理 出海 增长 岗位 经验 site:zhihu.com OR site:xiaohongshu.com OR site:woshipm.com"
+    query_learning: "how to become growth product manager global product growth learning path"
+    query_experience: "growth product manager experience global growth day in the life lessons learned"
