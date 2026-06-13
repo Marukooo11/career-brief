@@ -17,7 +17,6 @@ jobs:
     timeout-minutes: 60
 
     env:
-      DELIVERY: email
       SMTP_HOST: ${{ secrets.SMTP_HOST }}
       SMTP_PORT: ${{ secrets.SMTP_PORT }}
       SMTP_USERNAME: ${{ secrets.SMTP_USERNAME }}
@@ -25,9 +24,6 @@ jobs:
       EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
       EMAIL_TO: ${{ secrets.EMAIL_TO }}
       EMAIL_SUBJECT: ${{ secrets.EMAIL_SUBJECT }}
-
-      # Optional WeCom delivery. Set DELIVERY=wecom or DELIVERY=both to use it.
-      WECOM_BOT_WEBHOOK: ${{ secrets.WECOM_BOT_WEBHOOK }}
 
       # Optional last30days keys. Leave unset until you decide to unlock sources.
       GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}

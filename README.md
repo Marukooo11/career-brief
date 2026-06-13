@@ -205,28 +205,6 @@ Actions -> Career Brief -> Run workflow
 - 收录日期：
 ```
 
-## Enterprise WeChat 可选推送
-
-Email 是默认推送方式。企业微信机器人是可选能力，不是当前核心 MVP。
-
-如果要开启企业微信推送，在企业微信群里创建群机器人，复制 webhook URL，并把完整 URL 添加到 GitHub Secret：
-
-```text
-WECOM_BOT_WEBHOOK
-```
-
-然后在 workflow 里把环境变量改成：
-
-```yaml
-DELIVERY: both
-```
-
-或者只使用企业微信：
-
-```yaml
-DELIVERY: wecom
-```
-
 ## 定时规则
 
 默认 workflow 每 2 天在北京时间 12:00 运行：
@@ -246,12 +224,12 @@ git clone --depth 1 https://github.com/mvanhorn/last30days-skill.git .last30days
 python scripts/daily_last30days.py --skill-dir .last30days-skill --dry-run
 ```
 
-Dry run 会打印消息，不会发送邮件或企业微信消息。
+Dry run 会打印消息，不会发送邮件。
 
 ## 公开仓库安全提醒
 
-- 不要把邮箱密码、API key、webhook 写进代码。
-- 所有 token、key、webhook 都放在 GitHub Secrets。
+- 不要把邮箱密码或 API key 写进代码。
+- 所有 token 和 key 都放在 GitHub Secrets。
 - 不要提交 `artifacts/`、`.last30days-skill/`、`__pycache__/` 等运行产物。
 - 如果任何 token 泄露，立即 revoke 并重新生成。
 

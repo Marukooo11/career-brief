@@ -17,7 +17,6 @@ import re
 import smtplib
 import subprocess
 import sys
-import textwrap
 import urllib.error
 import urllib.request
 from pathlib import Path
@@ -702,33 +701,6 @@ def trim_brief_markdown(markdown: str) -> str:
     return markdown[: limit - len(suffix)].rstrip() + suffix
 
 
-def send_wecom(webhook: str, markdown: str, dry_run: bool) -> None:
-    payload = {
-        "msgtype": "markdown",
-        "markdown": {"content": markdown},
-    }
-    if dry_run:
-        print(markdown)
-        return
-    request = urllib.request.Request(
-        webhook,
-        data=json.dumps(payload, ensure_ascii=False).encode("utf-8"),
-        headers={"Content-Type": "application/json"},
-        method="POST",
-    )
-    try:
-        with urllib.request.urlopen(request, timeout=20) as response:
-            body = response.read().decode("utf-8", errors="replace")
-    except urllib.error.URLError as exc:
-        raise SystemExit(f"WeCom delivery failed: {exc}") from exc
-    try:
-        data = json.loads(body)
-    except json.JSONDecodeError:
-        raise SystemExit(f"WeCom returned non-JSON response: {body}")
-    if data.get("errcode") != 0:
-        raise SystemExit(f"WeCom delivery failed: {body}")
-
-
 def send_email(markdown: str, dry_run: bool, subject_suffix: str = "") -> None:
     host = os.getenv("SMTP_HOST", "")
     port = int(os.getenv("SMTP_PORT", "587"))
@@ -841,11 +813,6 @@ def main() -> int:
     parser.add_argument("--skill-dir", type=Path, required=True)
     parser.add_argument("--timeout", type=int, default=300)
     parser.add_argument("--dry-run", action="store_true")
-    parser.add_argument(
-        "--delivery",
-        choices=("email", "wecom", "both"),
-        default=os.getenv("DELIVERY", "email"),
-    )
     parser.add_argument("--artifacts-dir", type=Path, default=ROOT / "artifacts")
     args = parser.parse_args()
 
@@ -857,28 +824,15 @@ def main() -> int:
     markdown = build_markdown(results)
     write_artifacts(results, markdown, args.artifacts_dir)
 
-    if args.delivery in ("email", "both"):
-        if should_split_email_by_topic() and len(results) > 1:
-            for result in results:
-                send_email(
-                    build_markdown([result]),
-                    args.dry_run,
-                    subject_suffix=str(result.get("name", "未命名方向")),
-                )
-        else:
-            send_email(markdown, args.dry_run)
-    if args.delivery in ("wecom", "both"):
-        webhook = os.getenv("WECOM_BOT_WEBHOOK", "")
-        if not webhook and not args.dry_run:
-            raise SystemExit(
-                textwrap.dedent(
-                    """
-                    WECOM_BOT_WEBHOOK is missing.
-                    Add your Enterprise WeChat group robot webhook to GitHub Secrets.
-                    """
-                ).strip()
+    if should_split_email_by_topic() and len(results) > 1:
+        for result in results:
+            send_email(
+                build_markdown([result]),
+                args.dry_run,
+                subject_suffix=str(result.get("name", "未命名方向")),
             )
-        send_wecom(webhook, markdown, args.dry_run)
+    else:
+        send_email(markdown, args.dry_run)
     return 0
 
 
