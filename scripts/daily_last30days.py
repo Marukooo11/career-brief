@@ -34,8 +34,21 @@ QUERY_FIELDS: list[tuple[str, str]] = [
 ]
 
 DISPLAY_SOURCE_CATEGORIES = {
+    "中国市场 / 本土来源",
     "如何新增能力 / 学习路径",
     "帖子经验 / 从业者观点",
+}
+
+ROLE_CONTEXTS: dict[str, str] = {
+    "AI + 出海电商产品经理": (
+        "用户正在准备 AI + 出海电商产品经理方向，重点关注跨境电商、Shopify / Amazon / TikTok Shop "
+        "卖家工具、商品上架、AI Listing、多语言本地化、广告素材、客服自动化、选品分析、转化率、GMV、履约和合规。"
+        "输出要优先服务面试表达、行业黑话理解和作品集选题。"
+    ),
+    "AI + 社区产品经理": (
+        "用户正在准备 AI + 社区产品经理方向，重点关注内容社区、创作者生态、UGC、推荐分发、社区治理、"
+        "用户增长、留存、AI 辅助创作、AI 社群助手和内容质量。输出要优先服务面试表达、行业黑话理解和作品集选题。"
+    ),
 }
 
 
@@ -159,6 +172,7 @@ def run_last30days(skill_dir: Path, topic: dict[str, str], timeout: int) -> dict
     ][: int(os.getenv("MAX_ITEMS_PER_TOPIC", "8"))]
     for item in display_items:
         item["topic_name"] = display_name
+        item["topic_context"] = get_topic_context(display_name)
     display_items = enrich_items_for_brief(display_items)
     status = "ok" if research_items or all_items else "failed"
     return {
@@ -184,6 +198,13 @@ def get_topic_queries(topic: dict[str, str]) -> list[tuple[str, str]]:
         return queries
     query = (topic.get("query") or topic.get("name") or "").strip()
     return [("综合搜索", maybe_translate_query(query))] if query else []
+
+
+def get_topic_context(topic_name: str) -> str:
+    return ROLE_CONTEXTS.get(
+        topic_name,
+        f"用户正在围绕“{topic_name}”做求职研究，输出要优先服务岗位理解、面试表达和作品集选题。",
+    )
 
 
 def run_last30days_query(
@@ -275,14 +296,23 @@ def summarize_post_for_job_search(item: dict[str, Any]) -> str:
     title = item.get("title") or ""
     text = item.get("text") or ""
     source = item.get("source") or "unknown"
+    topic = item.get("topic_name") or "这个求职方向"
+    category = item.get("category") or "相关来源"
+    topic_context = item.get("topic_context") or get_topic_context(topic)
     prompt = (
         "你在帮一位中文产品经理做求职研究。请阅读下面这条帖子/经验/讨论来源，"
         "输出严格 JSON，不要 markdown。字段必须是 main、relevance、why_read。"
-        "main：用中文概括帖子主要内容或核心观点；"
-        "relevance：说明它和搜索主题、岗位工作内容或能力补充的具体关系；"
-        "why_read：说明为什么值得读，最好指出能帮用户补哪类认知、简历素材或面试表达。"
-        "每个字段 1 句话，具体一点，别编造原文没有的公司、岗位或数据。\n\n"
-        f"来源：{source}\n标题：{title}\n摘要：{text}"
+        "main：用中文概括帖子主要内容或核心观点，正文不足时要明确说需要点开原文确认；"
+        "relevance：必须具体说明它和目标岗位、业务场景、能力补充或面试表达的关系，不能只写“有助于了解行业”；"
+        "why_read：说明为什么值得读，最好指出能补哪类认知、能提炼什么面试素材、或能启发什么作品集方向。"
+        "如果这条来源和目标方向关联较弱，请直接说明“关联较弱”，不要强行拔高。"
+        "每个字段 1 句话，具体一点，只基于给定材料，不要编造原文没有的公司、岗位或数据。\n\n"
+        f"目标岗位：{topic}\n"
+        f"用户背景：{topic_context}\n"
+        f"搜索分类：{category}\n"
+        f"来源：{source}\n"
+        f"标题：{title}\n"
+        f"摘要：{text}"
     )
     content = call_openai_text(prompt, max_tokens=420)
     if not content:
@@ -343,10 +373,11 @@ def fallback_post_summary(item: dict[str, Any]) -> str:
     topic = item.get("topic_name") or "这个方向"
     category = item.get("category") or "相关来源"
     source = item.get("source") or "unknown"
+    topic_context = item.get("topic_context") or get_topic_context(topic)
     signal = infer_job_signal(title, text)
     main = build_fallback_main(title, text)
-    relevance = build_fallback_relevance(topic, category, title, signal)
-    why_read = build_fallback_why_read(topic, category, title, source, signal)
+    relevance = build_fallback_relevance(topic, category, title, signal, topic_context)
+    why_read = build_fallback_why_read(topic, category, title, source, signal, topic_context)
     return json.dumps(
         {"main": main, "relevance": relevance, "why_read": why_read},
         ensure_ascii=False,
@@ -359,23 +390,29 @@ def build_fallback_main(title: str, text: str) -> str:
     return f"标题聚焦“{title}”，但当前数据源没有提供足够正文，需要点开原文确认具体观点。"
 
 
-def build_fallback_relevance(topic: str, category: str, title: str, signal: str) -> str:
+def build_fallback_relevance(
+    topic: str, category: str, title: str, signal: str, topic_context: str
+) -> str:
+    if "中国市场" in category or "本土来源" in category:
+        return f"它可能提供中文语境下的真实讨论，可用来补足“{topic}”的行业黑话、岗位表达和本土案例感；建议重点验证其中和“{signal}”相关的细节。"
     if "学习路径" in category:
-        return f"它和“{topic}”的关系在于补足“{signal}”这类能力，可用来拆解学习顺序或练习任务。"
+        return f"它和“{topic}”的关系在于补足“{signal}”这类能力，可用来拆解学习顺序、练习任务或作品集补强点。"
     if "经验" in category or "从业者" in category:
-        return f"它更接近从业者/讨论者视角，能帮助判断“{topic}”在实际工作中如何体现“{signal}”。"
-    return f"它可作为“{topic}”的辅助材料，重点观察其中和“{signal}”相关的岗位要求。"
+        return f"它更接近从业者/讨论者视角，能帮助判断“{topic}”在实际工作中如何体现“{signal}”，并转成面试里的岗位理解。"
+    return f"它可作为“{topic}”的辅助材料，重点观察其中是否真的出现“{signal}”；如果原文不涉及 {topic_context[:40]}，就应降低优先级。"
 
 
 def build_fallback_why_read(
-    topic: str, category: str, title: str, source: str, signal: str
+    topic: str, category: str, title: str, source: str, signal: str, topic_context: str
 ) -> str:
     source_hint = source if source and source != "unknown" else "原文"
+    if "中国市场" in category or "本土来源" in category:
+        return f"建议阅读是因为它可能包含中文平台上的岗位说法、业务词汇或案例线索，可提炼成面试中解释你为什么选择“{topic}”的素材。"
     if "学习路径" in category:
         return f"建议阅读是因为它可能把“{signal}”从抽象能力变成可执行练习，适合转成你的补能力计划或作品集任务。"
     if "经验" in category or "从业者" in category:
         return f"建议阅读是因为它可能提供“{source_hint}”上的真实表达和问题意识，可提炼成面试中解释你为什么选择“{topic}”的素材。"
-    return f"建议阅读是因为标题“{title}”可能包含和“{topic}”相关的判断依据，但需要原文验证细节。"
+    return f"建议阅读是因为标题“{title}”可能包含和“{topic}”相关的判断依据；需要点开原文确认它是否覆盖 {topic_context[:40]} 等关键场景。"
 
 
 def infer_job_signal(title: str, text: str) -> str:
@@ -644,7 +681,7 @@ def build_markdown(results: list[dict[str, Any]]) -> str:
         append_brief_section(lines, "需要补的能力，以及怎么补", role_brief.get("skills", []))
         append_brief_section(lines, "可转化成简历/作品集的方向", role_brief.get("signals", []))
         lines.append(
-            "> 下面只展开学习路径和经验分享类来源；岗位/JD 类信息已用于上面的综合判断，不逐条列出。"
+            "> 下面展开本土来源、学习路径和经验分享类来源；岗位/JD 类信息已用于上面的综合判断，不逐条列出。"
         )
         items = result.get("items", [])
         if not items:

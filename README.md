@@ -39,10 +39,10 @@ Fork 本仓库，或者创建新仓库后复制这些文件。
 ```yaml
 topics:
   - name: "AI + 出海电商产品经理"
-    query_role: "AI ecommerce product manager responsibilities cross-border ecommerce Shopify TikTok Shop"
-    query_china_market: "AI 出海电商产品经理 跨境电商 产品经理 岗位 经验 site:zhihu.com OR site:xiaohongshu.com OR site:woshipm.com"
-    query_learning: "how to become ecommerce product manager AI cross-border ecommerce learning path"
-    query_experience: "cross-border ecommerce product manager experience day in the life lessons learned"
+    query_role: "AI product manager cross-border ecommerce seller tools Shopify TikTok Shop Amazon responsibilities job description AI Listing AI customer service"
+    query_china_market: "AI 出海电商 产品经理 跨境电商 卖家工具 AI Listing 商品上架 多语言本地化 客服自动化 选品 广告素材 经验"
+    query_learning: "AI cross-border ecommerce product manager learning path seller tools Shopify TikTok Shop AI listing localization customer support ads workflow"
+    query_experience: "AI cross-border ecommerce product manager experience seller tools Shopify TikTok Shop AI listing localization customer service ads lessons learned"
 ```
 
 字段含义：
