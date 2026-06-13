@@ -2,7 +2,7 @@
 
 Career Brief 是一个面向求职者、转岗者和作品集准备者的 AI 行业情报简报模板。它可以围绕你配置的目标岗位，定时收集近 30 天的行业信息、岗位经验、学习路径和真实案例，并通过邮件推送中文摘要。
 
-默认示例使用了两个匿名方向：**AI + 垂直行业产品经理（示例方向 A）** 和 **AI + 内容社区产品经理（示例方向 B）**。你可以把 `config/topics.yml` 改成自己的求职方向，例如数据分析师、海外增长 PM、AI 教育产品经理、B2B SaaS 产品经理、前端工程师等。
+默认示例使用了两个匿名方向：**（示例方向 A）** 和 **（示例方向 B）**。你可以把 `config/topics.yml` 改成自己的求职方向，例如数据分析师、海外增长 PM、AI 教育产品经理、B2B SaaS 产品经理、前端工程师等。
 
 如果仓库是公开的，建议不要在默认配置里暴露过于具体的个人求职方向；可以使用私有 fork、手动 workflow 输入，或在 `topic_context` 中写更泛化的描述。
 
@@ -40,8 +40,8 @@ Fork 本仓库，或者创建新仓库后复制这些文件。
 
 ```yaml
 topics:
-  - name: "AI + 垂直行业产品经理（示例方向 A）"
-    topic_context: "用户正在准备某个 AI + 垂直行业产品经理方向，重点关注 AI 如何进入具体业务链路、工作流、效率工具、用户场景、商业指标和岗位能力要求。"
+  - name: "（示例方向 A）"
+    topic_context: "用户正在准备某个方向，重点关注 具体业务链路、工作流、效率工具、用户场景、商业指标和岗位能力要求。"
     query_role: "AI vertical product manager responsibilities industry workflow automation AI assistant B2B SaaS job description"
     query_china_market: "AI 垂直行业 产品经理 业务流程 AI 工作台 效率工具 岗位 经验"
     query_learning: "AI product manager vertical industry workflow automation learning path business process AI assistant"
@@ -158,10 +158,10 @@ Actions -> Career Brief -> Run workflow
 
 本仓库默认配置了两个匿名示例方向：
 
-1. **AI + 垂直行业产品经理（示例方向 A）**
+1. **（示例方向 A）**
    关注 AI 如何进入某个具体行业的业务链路，例如行业工作台、AI 助手、自动化流程、内容/素材生成、客服辅助、数据分析和决策支持等场景。
 
-2. **AI + 内容社区产品经理（示例方向 B）**
+2. **（示例方向 B）**
    关注 AI 内容生产、推荐分发、创作者社区、UGC 治理、社区增长、用户关系和内容质量等场景。
 
 这些示例可以直接使用，也可以作为配置其他岗位的参考。对于真实求职方向，建议根据自己的目标岗位改写 `name`、`topic_context` 和各类 query。
