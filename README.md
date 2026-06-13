@@ -1,23 +1,20 @@
 # Career Brief：可配置的求职情报简报
 
-Career Brief 是一个面向求职者、转岗者和作品集准备者的 AI 行业情报简报模板。它可以围绕你配置的目标岗位，定时收集近 30 天的行业信息、岗位经验、学习路径和真实案例，并通过邮件推送中文摘要。
+Career Brief 是一个面向求职者、转岗者和作品集准备者的 AI 信息简报模板。
 
-默认示例使用了两个匿名方向：**（示例方向 A）** 和 **（示例方向 B）**。你可以把 `config/topics.yml` 改成自己的求职方向，例如数据分析师、海外增长 PM、AI 教育产品经理、B2B SaaS 产品经理、前端工程师等。
+它可以根据用户自定义的求职方向，定时收集近 30 天内与目标岗位相关的公开信息，并整理成中文邮件简报，帮助用户持续积累行业语感、岗位理解、学习路径和作品集灵感。
 
-如果仓库是公开的，建议不要在默认配置里暴露过于具体的个人求职方向；可以使用私有 fork、手动 workflow 输入，或在 `topic_context` 中写更泛化的描述。
-
-这个项目验证的是一条求职准备链路：
+本项目更关注“求职准备过程中的信息转化”，而不只是简单的信息聚合。
 
 ```text
-信息输入 -> 行业语感 -> 面试观点 -> 作品集机会
-```
+信息输入 -> 岗位理解 -> 能力拆解 -> 面试表达 -> 作品集机会
 
 ## 适合谁使用
 
-- 正在转岗，需要快速熟悉一个新行业或新岗位的人。
-- 正在求职，希望持续积累面试案例、岗位黑话和行业表达的人。
-- 正在准备作品集，希望从真实案例里寻找选题的人。
-- 想用 GitHub Actions 搭一个轻量自动化信息流的人。
+- 正在转岗，需要快速熟悉新行业或新岗位的人。
+- 正在求职，希望持续积累岗位案例、能力要求和行业表达的人。
+- 正在准备作品集，希望从真实业务案例中寻找选题的人。
+- 想用 GitHub Actions 搭建轻量自动化信息流的人。
 
 ## 它能做什么
 
@@ -40,12 +37,11 @@ Fork 本仓库，或者创建新仓库后复制这些文件。
 
 ```yaml
 topics:
-  - name: "（示例方向 A）"
-    topic_context: "用户正在准备某个方向，重点关注 具体业务链路、工作流、效率工具、用户场景、商业指标和岗位能力要求。"
-    query_role: "AI vertical product manager responsibilities industry workflow automation AI assistant B2B SaaS job description"
-    query_china_market: "AI 垂直行业 产品经理 业务流程 AI 工作台 效率工具 岗位 经验"
-    query_learning: "AI product manager vertical industry workflow automation learning path business process AI assistant"
-    query_experience: "AI product manager vertical industry workflow automation experience case study lessons learned"
+  - name: "示例岗位 A"
+    query_role: "target role responsibilities industry trend"
+    query_china_market: "target role industry discussion career advice"
+    query_learning: "how to learn target role required skills"
+    query_experience: "target role experience interview portfolio case"
 ```
 
 字段含义：
@@ -57,7 +53,8 @@ topics:
 - `query_learning`：学习路径、能力提升、入门路线。
 - `query_experience`：从业者经验、面经、工作日常、复盘文章。
 
-你也可以参考 `config/topics.example.yml`，把示例替换成自己的目标岗位。
+你可以参考 config/topics.example.yml，将示例替换成自己的目标岗位。
+建议：如果仓库是公开的，不要在配置文件中写入过于具体的个人求职方向、目标公司、真实邮箱或隐私信息。
 
 ### 3. 配置邮件 Secrets
 
@@ -135,17 +132,16 @@ Actions -> Career Brief -> Run workflow
 本次搜索拆分
 找到多少条线索 / 来源分布
 这个岗位大概做什么
-需要补的能力，以及怎么补
-可转化成简历/作品集的方向
-如何新增能力 / 学习路径：相关来源观点
-帖子经验 / 从业者观点：相关来源观点
-1. 来源标题
-   主要内容
-   与搜索主题的关联
-   推荐阅读理由
-   来源
-   信号分
-   链接
+需要补的能力，以及学习路径
+可转化成简历 / 作品集的方向
+学习路径：相关来源观点
+从业者经验：相关来源观点
+来源标题
+主要内容
+与搜索主题的关联
+推荐阅读理由
+来源
+链接
 ```
 
 项目希望把简报从“信息罗列”推进到“求职资产沉淀”，因此更关注：
@@ -154,17 +150,23 @@ Actions -> Career Brief -> Run workflow
 - 是否提炼了可用于面试表达的观点。
 - 是否发现了可转化为作品集的产品机会。
 
-## 默认示例：AI 产品经理求职情报
+## 默认示例
 
 本仓库默认配置了两个匿名示例方向：
 
-1. **（示例方向 A）**
-   关注 AI 如何进入某个具体行业的业务链路，例如行业工作台、AI 助手、自动化流程、内容/素材生成、客服辅助、数据分析和决策支持等场景。
+```yaml
+topics:
+  - name: "示例岗位 A"
+    query_role: "target role responsibilities industry trend"
+    query_china_market: "target role industry discussion career advice"
+    query_learning: "how to learn target role required skills"
+    query_experience: "target role experience interview portfolio case"
 
-2. **（示例方向 B）**
-   关注 AI 内容生产、推荐分发、创作者社区、UGC 治理、社区增长、用户关系和内容质量等场景。
-
-这些示例可以直接使用，也可以作为配置其他岗位的参考。对于真实求职方向，建议根据自己的目标岗位改写 `name`、`topic_context` 和各类 query。
+  - name: "示例岗位 B"
+    query_role: "another target role responsibilities market trend"
+    query_china_market: "another target role chinese discussion career path"
+    query_learning: "another target role learning roadmap"
+    query_experience: "another target role practitioner experience"
 
 ## 迭代路线
 
