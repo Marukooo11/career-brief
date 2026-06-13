@@ -1,4 +1,4 @@
-name: AI Job Intel Email Brief
+name: Career Brief
 
 on:
   workflow_dispatch:

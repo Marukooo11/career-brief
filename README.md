@@ -117,7 +117,7 @@ BSKY_APP_PASSWORD
 打开：
 
 ```text
-Actions -> AI Job Intel Email Brief -> Run workflow
+Actions -> Career Brief -> Run workflow
 ```
 
 手动运行时可以填写 `topics` 输入框，用逗号或换行临时覆盖 `config/topics.yml`。不填写则使用配置文件中的 topics。
