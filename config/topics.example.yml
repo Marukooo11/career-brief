@@ -8,18 +8,21 @@
 
 topics:
   - name: "你的目标岗位"
+    topic_context: "用户正在准备某个目标岗位，重点关注岗位职责、行业语境、能力要求、面试表达和作品集选题。"
     query_role: "target role responsibilities job description required skills"
     query_china_market: "你的目标岗位 岗位 JD 经验 面经 site:zhihu.com OR site:xiaohongshu.com OR site:maimai.cn OR site:woshipm.com"
     query_learning: "how to become target role learning path skills roadmap"
     query_experience: "target role experience day in the life interview lessons learned"
 
   - name: "AI + 教育产品经理"
+    topic_context: "用户正在准备 AI + 教育产品经理方向，重点关注学习平台、AI tutor、教学效果、课程转化、学习路径和教育场景下的人机协作。"
     query_role: "AI education product manager responsibilities edtech AI tutor learning platform"
     query_china_market: "AI 教育产品经理 智能教育 产品经理 岗位 经验 site:zhihu.com OR site:xiaohongshu.com OR site:woshipm.com"
     query_learning: "how to become AI education product manager edtech learning path"
     query_experience: "AI education product manager experience edtech product manager day in the life lessons learned"
 
   - name: "海外增长产品经理"
+    topic_context: "用户正在准备海外增长产品经理方向，重点关注获客、激活、留存、变现、渠道实验、本地化和增长指标体系。"
     query_role: "global growth product manager responsibilities user acquisition activation retention monetization"
     query_china_market: "海外增长 产品经理 出海 增长 岗位 经验 site:zhihu.com OR site:xiaohongshu.com OR site:woshipm.com"
     query_learning: "how to become growth product manager global product growth learning path"

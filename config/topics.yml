@@ -1,15 +1,19 @@
-# Topics to research every day.
+# Public demo topics.
 #
-# Start small. Each topic launches a separate last30days run, so 3-6 topics is
-# a comfortable first version for GitHub Actions free minutes.
+# Replace these anonymized examples with your own target roles before running
+# the workflow for personal job-search research. If your repo is public, keep
+# sensitive job-search directions in private forks or use manual workflow inputs.
 topics:
-  - name: "AI + 出海电商产品经理"
-    query_role: "AI product manager cross-border ecommerce seller tools Shopify TikTok Shop Amazon responsibilities job description AI Listing AI customer service"
-    query_china_market: "AI 出海电商 产品经理 跨境电商 卖家工具 AI Listing 商品上架 多语言本地化 客服自动化 选品 广告素材 经验"
-    query_learning: "AI cross-border ecommerce product manager learning path seller tools Shopify TikTok Shop AI listing localization customer support ads workflow"
-    query_experience: "AI cross-border ecommerce product manager experience seller tools Shopify TikTok Shop AI listing localization customer service ads lessons learned"
-  - name: "AI + 社区产品经理"
-    query_role: "AI community product manager responsibilities creator community UGC moderation recommendation retention community growth"
-    query_china_market: "AI 社区产品经理 社区产品 创作者社区 UGC 治理 内容分发 用户增长 留存 经验"
-    query_learning: "AI community product manager learning path creator community UGC moderation recommendation retention community growth"
-    query_experience: "AI community product manager experience creator community UGC moderation recommendation retention community growth lessons learned"
+  - name: "AI + 垂直行业产品经理（示例方向 A）"
+    topic_context: "用户正在准备某个 AI + 垂直行业产品经理方向，重点关注 AI 如何进入具体业务链路、工作流、效率工具、用户场景、商业指标和岗位能力要求。"
+    query_role: "AI vertical product manager responsibilities industry workflow automation AI assistant B2B SaaS job description"
+    query_china_market: "AI 垂直行业 产品经理 业务流程 AI 工作台 效率工具 岗位 经验"
+    query_learning: "AI product manager vertical industry workflow automation learning path business process AI assistant"
+    query_experience: "AI product manager vertical industry workflow automation experience case study lessons learned"
+
+  - name: "AI + 内容社区产品经理（示例方向 B）"
+    topic_context: "用户正在准备 AI + 内容/社区类产品经理方向，重点关注内容生产、推荐分发、用户增长、社区治理、创作者生态和 AI 辅助工作流。"
+    query_role: "AI content community product manager responsibilities creator community UGC moderation recommendation retention"
+    query_china_market: "AI 内容社区 产品经理 创作者社区 UGC 治理 内容分发 用户增长 留存 经验"
+    query_learning: "AI community product manager learning path creator community UGC moderation recommendation retention"
+    query_experience: "AI community product manager experience creator community UGC moderation recommendation retention lessons learned"

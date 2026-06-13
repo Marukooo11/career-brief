@@ -40,20 +40,19 @@ DISPLAY_SOURCE_CATEGORIES = {
 }
 
 ROLE_CONTEXTS: dict[str, str] = {
-    "AI + 出海电商产品经理": (
-        "用户正在准备 AI + 出海电商产品经理方向，重点关注跨境电商、Shopify / Amazon / TikTok Shop "
-        "卖家工具、商品上架、AI Listing、多语言本地化、广告素材、客服自动化、选品分析、转化率、GMV、履约和合规。"
-        "输出要优先服务面试表达、行业黑话理解和作品集选题。"
+    "AI + 垂直行业产品经理（示例方向 A）": (
+        "用户正在准备 AI + 垂直行业产品经理方向，重点关注 AI 如何进入某个具体行业的业务链路、"
+        "工作流、效率工具、用户场景、商业指标和岗位能力要求。输出要优先服务面试表达、行业黑话理解和作品集选题。"
     ),
-    "AI + 社区产品经理": (
-        "用户正在准备 AI + 社区产品经理方向，重点关注内容社区、创作者生态、UGC、推荐分发、社区治理、"
-        "用户增长、留存、AI 辅助创作、AI 社群助手和内容质量。输出要优先服务面试表达、行业黑话理解和作品集选题。"
+    "AI + 内容社区产品经理（示例方向 B）": (
+        "用户正在准备 AI + 内容/社区类产品经理方向，重点关注内容生产、推荐分发、用户增长、社区治理、"
+        "创作者生态和 AI 辅助工作流。输出要优先服务面试表达、行业黑话理解和作品集选题。"
     ),
 }
 
 
 ROLE_PROFILES: dict[str, dict[str, list[str]]] = {
-    "AI + 社区产品经理": {
+    "AI + 内容社区产品经理（示例方向 B）": {
         "what": [
             "把社区、内容、用户关系和 AI 能力结合起来，提升用户留存、创作/交流效率、社区活跃和商业转化。",
             "常见场景包括 AI 社区运营工具、创作者社区、开发者社区、知识社区、社交产品、内容平台的 AI 功能。",
@@ -73,24 +72,24 @@ ROLE_PROFILES: dict[str, dict[str, list[str]]] = {
             "作品集可以做：AI 社区助手、社区内容质检/推荐方案、创作者成长路径、用户反馈闭环分析。",
         ],
     },
-    "AI + 出海电商产品经理": {
+    "AI + 垂直行业产品经理（示例方向 A）": {
         "what": [
-            "把 AI 能力用于跨境电商链路，帮助卖家、平台或品牌提升选品、上架、营销、客服、转化和履约效率。",
-            "常见场景包括 Shopify/DTC、Amazon/TikTok Shop 卖家工具、跨境 SaaS、AI shopping assistant、广告/素材自动化。",
+            "把 AI 能力用于某个垂直行业的核心业务链路，帮助用户提升信息处理、内容生成、决策辅助或运营效率。",
+            "常见场景包括行业工作台、AI 助手、自动化流程、内容/素材生成、客户服务、数据分析和业务决策支持。",
         ],
         "responsibilities": [
-            "设计面向海外卖家或消费者的 AI 工具，例如商品文案、多语言本地化、广告素材、客服、选品分析。",
-            "理解跨境电商业务链路：选品、供应链、刊登、营销投放、支付、物流、售后、合规。",
-            "和运营、销售、算法/工程团队一起做转化率、GMV、留存、付费率等指标优化。",
+            "理解目标行业的用户角色、业务流程、关键指标和高频痛点，并判断 AI 能落在哪些环节。",
+            "设计面向业务用户的 AI 工具，例如信息整理、内容生成、流程自动化、推荐决策或客服辅助。",
+            "和运营、业务、算法/工程团队一起定义需求、评估效果，并推动指标优化。",
         ],
         "skills": [
-            "补电商链路能力：梳理选品、刊登、营销、支付、物流、售后、合规的完整卖家流程。",
-            "补海外市场理解：定期研究 Shopify、Amazon、TikTok Shop、DTC 工具生态和卖家痛点。",
-            "补 AI 落地能力：做一个多语言商品上架、广告素材或客服自动化的产品方案。",
+            "补行业理解：选择一个目标行业，梳理用户角色、业务链路、核心指标和典型工具。",
+            "补 AI 落地能力：选择一个高频流程，设计 AI 辅助方案，并说明哪些环节需要人工确认。",
+            "补作品集表达：把行业案例拆成问题、用户、方案、指标、风险和迭代路径。",
         ],
         "signals": [
-            "搜索关键词：global ecommerce、cross-border ecommerce、AI shopping assistant、DTC、Shopify app、TikTok Shop seller tools。",
-            "作品集可以做：AI 商品上架助手、跨境卖家工作台、海外市场选品分析、AI 广告素材生成流程。",
+            "搜索关键词：AI vertical product manager、industry workflow automation、AI assistant、B2B SaaS AI workflow。",
+            "作品集可以做：行业 AI 工作台、AI 流程助手、业务知识库问答、自动化运营工具、智能分析看板。",
         ],
     },
 }
@@ -172,7 +171,7 @@ def run_last30days(skill_dir: Path, topic: dict[str, str], timeout: int) -> dict
     ][: int(os.getenv("MAX_ITEMS_PER_TOPIC", "8"))]
     for item in display_items:
         item["topic_name"] = display_name
-        item["topic_context"] = get_topic_context(display_name)
+        item["topic_context"] = get_topic_context(display_name, topic)
     display_items = enrich_items_for_brief(display_items)
     status = "ok" if research_items or all_items else "failed"
     return {
@@ -200,7 +199,11 @@ def get_topic_queries(topic: dict[str, str]) -> list[tuple[str, str]]:
     return [("综合搜索", maybe_translate_query(query))] if query else []
 
 
-def get_topic_context(topic_name: str) -> str:
+def get_topic_context(topic_name: str, topic: dict[str, str] | None = None) -> str:
+    if topic:
+        custom_context = (topic.get("topic_context") or topic.get("context") or "").strip()
+        if custom_context:
+            return custom_context
     return ROLE_CONTEXTS.get(
         topic_name,
         f"用户正在围绕“{topic_name}”做求职研究，输出要优先服务岗位理解、面试表达和作品集选题。",

@@ -2,7 +2,9 @@
 
 Career Brief 是一个面向求职者、转岗者和作品集准备者的 AI 行业情报简报模板。它可以围绕你配置的目标岗位，定时收集近 30 天的行业信息、岗位经验、学习路径和真实案例，并通过邮件推送中文摘要。
 
-默认示例聚焦 **AI + 出海电商产品经理** 和 **AI + 社区产品经理**。你可以把 `config/topics.yml` 改成自己的求职方向，例如数据分析师、海外增长 PM、AI 教育产品经理、B2B SaaS 产品经理、前端工程师等。
+默认示例使用了两个匿名方向：**AI + 垂直行业产品经理（示例方向 A）** 和 **AI + 内容社区产品经理（示例方向 B）**。你可以把 `config/topics.yml` 改成自己的求职方向，例如数据分析师、海外增长 PM、AI 教育产品经理、B2B SaaS 产品经理、前端工程师等。
+
+如果仓库是公开的，建议不要在默认配置里暴露过于具体的个人求职方向；可以使用私有 fork、手动 workflow 输入，或在 `topic_context` 中写更泛化的描述。
 
 这个项目验证的是一条求职准备链路：
 
@@ -38,16 +40,18 @@ Fork 本仓库，或者创建新仓库后复制这些文件。
 
 ```yaml
 topics:
-  - name: "AI + 出海电商产品经理"
-    query_role: "AI product manager cross-border ecommerce seller tools Shopify TikTok Shop Amazon responsibilities job description AI Listing AI customer service"
-    query_china_market: "AI 出海电商 产品经理 跨境电商 卖家工具 AI Listing 商品上架 多语言本地化 客服自动化 选品 广告素材 经验"
-    query_learning: "AI cross-border ecommerce product manager learning path seller tools Shopify TikTok Shop AI listing localization customer support ads workflow"
-    query_experience: "AI cross-border ecommerce product manager experience seller tools Shopify TikTok Shop AI listing localization customer service ads lessons learned"
+  - name: "AI + 垂直行业产品经理（示例方向 A）"
+    topic_context: "用户正在准备某个 AI + 垂直行业产品经理方向，重点关注 AI 如何进入具体业务链路、工作流、效率工具、用户场景、商业指标和岗位能力要求。"
+    query_role: "AI vertical product manager responsibilities industry workflow automation AI assistant B2B SaaS job description"
+    query_china_market: "AI 垂直行业 产品经理 业务流程 AI 工作台 效率工具 岗位 经验"
+    query_learning: "AI product manager vertical industry workflow automation learning path business process AI assistant"
+    query_experience: "AI product manager vertical industry workflow automation experience case study lessons learned"
 ```
 
 字段含义：
 
 - `name`：邮件里显示的主题名称。
+- `topic_context`：可选。告诉模型你的求职背景和关注场景，用来生成更贴合的关联理由；公开仓库中建议写泛化描述。
 - `query_role`：岗位职责、JD、能力模型。
 - `query_china_market`：中文平台、国内经验帖、行业讨论。
 - `query_learning`：学习路径、能力提升、入门路线。
@@ -152,15 +156,15 @@ Actions -> Career Brief -> Run workflow
 
 ## 默认示例：AI 产品经理求职情报
 
-本仓库默认配置了两个示例方向：
+本仓库默认配置了两个匿名示例方向：
 
-1. **AI + 出海电商产品经理**
-   关注 AI 商品图、AI Listing、多语言本地化、客服自动化、广告素材生成、选品分析、Shopify / Amazon / TikTok Shop 卖家工具等场景。
+1. **AI + 垂直行业产品经理（示例方向 A）**
+   关注 AI 如何进入某个具体行业的业务链路，例如行业工作台、AI 助手、自动化流程、内容/素材生成、客服辅助、数据分析和决策支持等场景。
 
-2. **AI + 社区产品经理**
-   关注 AI 社区运营、内容分发、创作者社区、开发者社区、UGC 治理、社区增长、用户关系和内容质量等场景。
+2. **AI + 内容社区产品经理（示例方向 B）**
+   关注 AI 内容生产、推荐分发、创作者社区、UGC 治理、社区增长、用户关系和内容质量等场景。
 
-这些示例可以直接使用，也可以作为配置其他岗位的参考。
+这些示例可以直接使用，也可以作为配置其他岗位的参考。对于真实求职方向，建议根据自己的目标岗位改写 `name`、`topic_context` 和各类 query。
 
 ## 迭代路线
 
