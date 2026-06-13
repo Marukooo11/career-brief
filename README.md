@@ -215,6 +215,18 @@ cron: "0 4 */2 * *"
 
 GitHub Actions 的 cron 使用 UTC，因此北京时间 12:00 对应 UTC 04:00。
 
+## 技术来源与致谢
+
+Career Brief 的信息检索能力参考并调用了 [mvanhorn/last30days-skill](https://github.com/mvanhorn/last30days-skill)。本仓库主要在它的近 30 天信息检索能力之上，补充了面向求职场景的 topic 配置、中文邮件摘要、岗位相关性解释、GitHub Actions 定时运行和 artifacts 归档。
+
+workflow 每次运行时会临时 clone upstream skill：
+
+```yaml
+git clone --depth 1 https://github.com/mvanhorn/last30days-skill.git .last30days-skill
+```
+
+因此，本仓库不直接复制 upstream skill 的代码；它更像是一个面向求职情报场景的轻量封装和使用模板。
+
 ## 本地 Dry Run
 
 克隆 upstream skill 后可以本地测试：
