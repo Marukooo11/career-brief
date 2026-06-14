@@ -4,14 +4,10 @@
 # the workflow for personal job-search research. If your repo is public, keep
 # sensitive job-search directions in private forks or use manual workflow inputs.
 topics:
-  - name: "示例岗位 A"
-    query_role: "target role responsibilities industry trend"
-    query_china_market: "target role industry discussion career advice"
-    query_learning: "how to learn target role required skills"
-    query_experience: "target role experience interview portfolio case"
+  - name: "你的目标岗位"
+    topic_context: "用户正在准备某个目标岗位，重点关注岗位职责、行业语境、能力要求、面试表达和作品集选题。"
+    query_role: "target role responsibilities job description required skills"
+    query_china_market: "你的目标岗位 岗位 JD 经验 面经 site:zhihu.com OR site:xiaohongshu.com OR site:maimai.cn OR site:woshipm.com"
+    query_learning: "how to become target role learning path skills roadmap"
+    query_experience: "target role experience day in the life interview lessons learned"
 
-  - name: "示例岗位 B"
-    query_role: "another target role responsibilities market trend"
-    query_china_market: "another target role chinese discussion career path"
-    query_learning: "another target role learning roadmap"
-    query_experience: "another target role practitioner experience"
