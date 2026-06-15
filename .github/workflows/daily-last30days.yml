@@ -7,9 +7,14 @@ on:
   workflow_dispatch:
     inputs:
       topics:
-        description: "Optional topics for this run, separated by commas or new lines. Empty means config/topics.yml."
+        description: "Optional topics, comma or newline separated"
         required: false
-        type: string
+        default: ""
+      send_email:
+        description: "Send email instead of dry run"
+        required: false
+        type: boolean
+        default: false
   schedule:
     # GitHub schedules run in UTC. This is 12:00 Asia/Shanghai every 2 days.
     - cron: "0 4 */2 * *"
@@ -65,9 +70,17 @@ jobs:
         run: |
           git clone --depth 1 https://github.com/mvanhorn/last30days-skill.git .last30days-skill
 
-      - name: Run daily brief and send email
+      - name: Run daily brief
+        env:
+          TOPICS_TEXT: ${{ github.event.inputs.topics }}
         run: |
-          python scripts/daily_last30days.py --skill-dir .last30days-skill
+          ARGS="--skill-dir .last30days-skill"
+
+          if [ "${{ github.event.inputs.send_email }}" != "true" ]; then
+            ARGS="$ARGS --dry-run"
+          fi
+
+          python scripts/daily_last30days.py $ARGS
 
       - name: Upload brief artifacts
         if: always()
